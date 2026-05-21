@@ -1,0 +1,93 @@
+/* =========================================
+   1. VIEW TRANSITIONS (Circle Reveal Animation)
+========================================= */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* =========================================
+   2. GLOBAL HOVER TRANSITIONS
+========================================= */
+/* Sirf border, shadow aur transform par transition lagayenge. 
+   Background/Color par lagane se Circle animation clash karta hai */
+* {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+/* =========================================
+   3. LIGHT THEME (Default) 
+========================================= */
+:root, body.light {
+  --bg-main: #f4f4f9;
+  --bg-card: #ffffff;
+  --text-main: #111118;  /* Dark text for light mode */
+  --text-dim: #333344;   /* Dark gray text */
+  --accent: #0284c7;     /* Deep Blue for premium feel */
+  --accent-glow: rgba(120, 24, 4, 0.15); 
+  --border-color: #d1d1e0;
+  --nav-bg: rgba(255, 255, 255, 0.9);
+  --terminal-bg: #f1f5f9;
+  --canvas-bg: rgba(0, 0, 0, 0.03);
+}
+
+/* =========================================
+   4. DARK THEME 
+========================================= */
+body.dark {
+  --bg-main: #050508;
+  --bg-card: #0d0d14;
+  --text-main: #ffffff;  /* White text for dark mode */
+  --text-dim: #a3a3c2;   /* Light gray text */
+  --accent: #00e5ff;     /* Neon Cyan */
+  --accent-glow: rgba(0, 229, 255, 0.15); 
+  --border-color: #1f1f2e;
+  --nav-bg: rgba(13, 13, 20, 0.9);
+  --terminal-bg: #12121c;
+  --canvas-bg: rgba(0, 0, 0, 0.2);
+}
+
+/* =========================================
+   5. BASE STYLES 
+========================================= */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  overflow-x: hidden;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* =========================================
+   6. PRINT STYLES FOR DYNAMIC RESUME 
+========================================= */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background-color: white !important;
+    color: black !important;
+    transition: none !important; 
+  }
+  * {
+    transition: none !important;
+    box-shadow: none !important;
+    border-color: #ccc !important;
+  }
+}

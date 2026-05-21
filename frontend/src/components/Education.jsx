@@ -1,0 +1,213 @@
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+
+const Education = () => {
+  const [educations, setEducations] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 🔥 पेज हैंग होने से बचाने के लिए Resize Loop हटा दिया गया है।
+  // अब यह सिर्फ एक बार चेक करेगा कि स्क्रीन मोबाइल है या नहीं।
+  const isMobile = window.innerWidth <= 768;
+
+  useEffect(() => {
+    let isMounted = true; // Memory leak से बचने के लिए
+
+    const fetchEducationData = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/resume-data");
+        const data = await res.json();
+
+        if (isMounted) {
+          // डेटाबेस के अलग-अलग नामों (education, educations, etc.) के लिए सुरक्षित चेक
+          const eduData = data?.education || data?.educations || data?.academic || [];
+          
+          if (Array.isArray(eduData) && eduData.length > 0) {
+            // 🔥 Extremely Safe Sorting (अगर कोई ID मिसिंग हो तो भी पेज क्रैश नहीं होगा)
+            const sortedData = [...eduData].sort((a, b) => {
+              const idA = a?._id?.toString() || "";
+              const idB = b?._id?.toString() || "";
+              return idB.localeCompare(idA);
+            });
+            setEducations(sortedData);
+          } else {
+            setEducations([]); // डेटा नहीं है तो खाली रखें
+          }
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Failed to fetch education data:", err);
+        if (isMounted) {
+          setEducations([]);
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchEducationData();
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  }, []); // 🚨 Empty array ensures यह सिर्फ एक बार चलेगा, कभी हैंग नहीं करेगा!
+
+  // ==========================================
+  // 🎨 STYLES OBJECT (Safe & Responsive)
+  // ==========================================
+  const styles = {
+    container: {
+      padding: '20px 5vw', 
+      background: 'transparent', 
+      color: 'var(--text-main)',
+      fontFamily: "'Inter', sans-serif",
+      position: 'relative',
+      width: '100%'
+    },
+    header: {
+      textAlign: 'center',
+      marginBottom: '60px',
+      position: 'relative',
+      zIndex: 5
+    },
+    timelineWrapper: {
+      position: 'relative',
+      maxWidth: '1000px',
+      margin: '0 auto',
+      zIndex: 5
+    },
+    centerLine: {
+      position: 'absolute',
+      left: isMobile ? '20px' : '50%',
+      top: '0',
+      bottom: '0',
+      width: '2px', 
+      background: 'linear-gradient(to bottom, transparent, var(--accent), var(--accent), transparent)',
+      boxShadow: '0 0 10px var(--accent)', 
+      transform: 'translateX(-50%)',
+      borderRadius: '10px',
+      zIndex: 1
+    },
+    timelineItem: (isLeft) => ({
+      display: 'flex',
+      justifyContent: isMobile ? 'flex-end' : (isLeft ? 'flex-start' : 'flex-end'),
+      width: '100%',
+      marginBottom: '80px', 
+      position: 'relative'
+    }),
+    dot: {
+      position: 'absolute',
+      left: isMobile ? '20px' : '50%',
+      top: '40px', 
+      width: '24px',
+      height: '24px',
+      borderRadius: '50%',
+      background: 'var(--bg-main)', 
+      border: '4px solid var(--accent)',
+      boxShadow: '0 0 15px var(--accent), inset 0 0 5px var(--accent)', 
+      zIndex: 10
+    },
+    card: {
+      width: isMobile ? 'calc(100% - 60px)' : 'calc(50% - 50px)',
+      boxSizing: 'border-box',
+      background: 'var(--bg-card)',
+      padding: '30px',
+      borderRadius: '16px',
+      border: '1px solid var(--border-color)',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+      position: 'relative',
+      zIndex: 5
+    },
+    arrow: (isLeft) => ({
+      position: 'absolute',
+      top: '28px', 
+      [isLeft ? 'right' : 'left']: '-12px',
+      width: '24px',
+      height: '24px',
+      background: 'var(--bg-card)',
+      borderTop: '1px solid var(--border-color)',
+      borderRight: '1px solid var(--border-color)',
+      transform: isLeft ? 'rotate(45deg)' : 'rotate(-135deg)',
+      zIndex: -1
+    })
+  };
+
+  return (
+    <div style={styles.container}>
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }} 
+        whileInView={{ opacity: 1, y: 0 }} 
+        viewport={{ once: true }} 
+        style={styles.header}
+      >
+        <h2 style={{ fontSize: 'clamp(30px, 4vw, 45px)', margin: '0 0 15px 0', fontWeight: 'bold' }}>
+          My <span style={{ color: 'var(--accent)', textShadow: '0 0 20px var(--accent-glow)' }}>Education</span>
+        </h2>
+      </motion.div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', color: 'var(--accent)', zIndex: 5, position: 'relative' }}>Loading education details...</div>
+      ) : educations.length === 0 ? (
+        <div style={{ textAlign: 'center', color: 'var(--text-dim)', zIndex: 5, position: 'relative' }}>No education records found.</div>
+      ) : (
+        <div style={styles.timelineWrapper}>
+          <div style={styles.centerLine} />
+          
+          {educations.map((edu, index) => {
+            if (!edu) return null; // Safety Check 
+
+            const isLeft = !isMobile && index % 2 === 0;
+
+            return (
+              <div key={edu._id || index} style={styles.timelineItem(isLeft)}>
+                
+                {/* 🚀 Fixed Glowing Dot */}
+                <motion.div 
+                  initial={{ scale: 0, x: "-50%", y: "-50%" }} 
+                  whileInView={{ scale: 1, x: "-50%", y: "-50%" }} 
+                  viewport={{ once: true }} 
+                  transition={{ type: 'spring', delay: 0.1 }}
+                  style={styles.dot} 
+                />
+
+                {/* 🚀 Premium Card */}
+                <motion.div 
+                  initial={{ opacity: 0, x: isMobile ? 50 : (isLeft ? -50 : 50) }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }} // Margin हटा दिया गया है जो क्रैश कर रहा था
+                  transition={{ duration: 0.5, type: 'spring', stiffness: 100 }}
+                  whileHover={{ scale: 1.02, borderColor: 'var(--accent)' }}
+                  style={styles.card}
+                >
+                  {!isMobile && <div style={styles.arrow(isLeft)} />}
+
+                  <span style={{ 
+                    display: 'inline-block', padding: '6px 14px', background: 'rgba(0, 229, 255, 0.1)', 
+                    color: 'var(--accent)', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold', 
+                    marginBottom: '15px', border: '1px solid var(--accent)', boxShadow: '0 0 10px rgba(0, 229, 255, 0.2)'
+                  }}>
+                    {edu?.year || edu?.duration || "2020 - 2024"} 
+                  </span>
+                  
+                  <h3 style={{ margin: '0 0 5px 0', fontSize: '22px', fontWeight: 'bold' }}>
+                    {edu?.degree || edu?.title || "Bachelor of Technology"}
+                  </h3>
+                  <h4 style={{ margin: '0 0 15px 0', fontSize: '16px', color: 'var(--accent)', fontStyle: 'italic' }}>
+                    @ {edu?.institution || edu?.college || edu?.school || "University"}
+                  </h4>
+                  
+                  {edu?.description && (
+                    <p style={{ margin: 0, color: 'var(--text-dim)', lineHeight: '1.7', fontSize: '15px' }}>
+                      {edu.description}
+                    </p>
+                  )}
+                </motion.div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Education;
