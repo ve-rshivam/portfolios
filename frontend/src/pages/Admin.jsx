@@ -4,6 +4,14 @@ import { Canvas } from '@react-three/fiber';
 import { Float, MeshDistortMaterial, Sphere } from '@react-three/drei';
 
 const Admin = () => {
+  // ==================== SAFE STORAGE PARSER ====================
+  const getSafePerms = () => {
+    try {
+      const perms = localStorage.getItem("adminPerms");
+      return perms ? JSON.parse(perms) : [];
+    } catch(e) { return []; }
+  };
+
   // ==================== SECURE AUTH STATES ====================
   const [authStep, setAuthStep] = useState(localStorage.getItem("adminToken") ? 2 : 0);
   const [loginData, setLoginData] = useState({ identifier: '', password: '' });
@@ -12,7 +20,7 @@ const Admin = () => {
   
   // 🔥 ROLE-BASED ACCESS CONTROL (RBAC) STATES 🔥
   const [adminRole, setAdminRole] = useState(localStorage.getItem("adminRole") || "team");
-  const [adminPerms, setAdminPerms] = useState(JSON.parse(localStorage.getItem("adminPerms")) || []);
+  const [adminPerms, setAdminPerms] = useState(getSafePerms());
   const [adminName, setAdminName] = useState(localStorage.getItem("adminName") || "");
 
   // Forgot Password States
@@ -31,6 +39,10 @@ const Admin = () => {
   const [experiences, setExperiences] = useState([]);
   const [clientProjects, setClientProjects] = useState([]);
   const [education, setEducation] = useState([]);
+
+  // 🔥 GITHUB PROJECTS CONTROL STATES 🔥
+  const [githubProjects, setGithubProjects] = useState([]);
+  const [pinnedProjects, setPinnedProjects] = useState([]);
   
   // Form States
   const [newEdu, setNewEdu] = useState({ degree: '', institution: '', duration: '', score: '', description: '' });
@@ -38,7 +50,7 @@ const Admin = () => {
   const [newService, setNewService] = useState({ title: '', description: '', icon: '🔧', price: '' });
   const [newSkill, setNewSkill] = useState({ name: '', description: '', icon: '💻', proficiency: 50, category: 'Tech' }); 
   
-  // 🔥 TEAM MANAGEMENT STATE (Superadmin Only) 🔥
+  // 🔥 TEAM MANAGEMENT STATE 🔥
   const [teamList, setTeamList] = useState([]);
   const [newTeamMember, setNewTeamMember] = useState({ name: '', identifier: '', permissions: [] });
 
@@ -50,10 +62,10 @@ const Admin = () => {
   const [cmsStatus, setCmsStatus] = useState('');
   const [homeData, setHomeData] = useState({ heroTitle: '', heroSubtitle: '' });
   const [aboutData, setAboutData] = useState({ description: '' });
-  const [contactData, setContactData] = useState({ email: '', phone: '', address: '' });
+  const [contactData, setContactData] = useState([]);
   const [policyData, setPolicyData] = useState({ privacy: '', terms: '', refund: '' });
 
-  // 🔥 NEW: SELF-SERVICE SECURITY STATES 🔥
+  // 🔥 SELF-SERVICE SECURITY STATES 🔥
   const [securityData, setSecurityData] = useState({ oldPassword: '', newPassword: '', newPin: '' });
   const [securityMsg, setSecurityMsg] = useState('');
 
@@ -63,13 +75,26 @@ const Admin = () => {
   const hasPerm = (perm) => adminRole === 'superadmin' || adminPerms.includes(perm);
 
   // ====================================
-  // FETCH DASHBOARD DATA (Optimized for RBAC)
+  // FETCH DASHBOARD DATA (Safe Fetching Logic)
   // ====================================
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem("adminToken"); 
       const headers = { "Authorization": `Bearer ${token}` }; 
 
+      // 1. Unconditional Fetches (Because these are public data APIs)
+      const srvRes = await fetch("http://localhost:5000/api/services"); 
+      if(srvRes.ok) setServices(await srvRes.json());
+
+      const skillRes = await fetch("http://localhost:5000/api/resume-data");
+      if(skillRes.ok) {
+        const skillData = await skillRes.json();
+        setSkills(skillData.skills || []);
+        setEducation(skillData.education || []); 
+        setExperiences(skillData.experiences || []);
+      }
+
+      // 2. Conditional / Protected Fetches
       if (hasPerm('messages') || hasPerm('payments')) {
         const msgRes = await fetch("http://localhost:5000/api/messages", { headers });
         if(msgRes.ok) setInboxData(await msgRes.json());
@@ -79,21 +104,6 @@ const Admin = () => {
         const revRes = await fetch("http://localhost:5000/api/reviews"); 
         if(revRes.ok) setReviews(await revRes.json());
       }
-
-      if (hasPerm('services')) {
-        const srvRes = await fetch("http://localhost:5000/api/services"); 
-        if(srvRes.ok) setServices(await srvRes.json());
-      }
-
-      if (hasPerm('skills')) {
-        const skillRes = await fetch("http://localhost:5000/api/resume-data");
-        const skillData = await skillRes.json();
-        if(skillData) {
-          if(skillData.skills) setSkills(skillData.skills);
-          if(skillData.education) setEducation(skillData.education); 
-          if(skillData.experiences) setExperiences(skillData.experiences);
-        }
-      }
       
       if (hasPerm('projects') || hasPerm('payments')) {
         const projRes = await fetch("http://localhost:5000/api/client-projects", { headers });
@@ -102,13 +112,20 @@ const Admin = () => {
 
       if (hasPerm('cms')) {
         const contentRes = await fetch("http://localhost:5000/api/content"); 
-        const content = await contentRes.json();
-        if(content) {
-          if(content.homeData) setHomeData(content.homeData);
-          if(content.aboutData) setAboutData(content.aboutData);
-          if(content.contactData) setContactData(content.contactData);
-          if(content.policyData) setPolicyData(content.policyData);
+        if(contentRes.ok) {
+          const content = await contentRes.json();
+          setHomeData(content.homeData || {});
+          setAboutData(content.aboutData || {});
+          setContactData(Array.isArray(content.contactData) ? content.contactData : []);
+          setPolicyData(content.policyData || {});
         }
+
+        const pinRes = await fetch("http://localhost:5000/api/pinned-projects");
+        if (pinRes.ok) setPinnedProjects(await pinRes.json());
+
+        const githubUser = "ve-rshivam";
+        const ghRes = await fetch(`https://api.github.com/users/${githubUser}/repos?sort=updated&per_page=100`);
+        if (ghRes.ok) setGithubProjects(await ghRes.json());
       }
 
       if (adminRole === 'superadmin') {
@@ -116,7 +133,7 @@ const Admin = () => {
         if(teamRes.ok) setTeamList(await teamRes.json());
       }
 
-    } catch (err) { console.log(err); }
+    } catch (err) { console.error("Fetch Data Error:", err); }
   };
 
   useEffect(() => {
@@ -152,6 +169,28 @@ const Admin = () => {
       const data = await res.json();
       if (data.success) setCmsStatus("✅ Changes are now LIVE on the website!");
     } catch (err) { setCmsStatus("❌ Error connecting to database."); }
+  };
+
+  const toggleGitHubPin = async (repo) => {
+    try {
+      const token = localStorage.getItem("adminToken");
+      const res = await fetch("http://localhost:5000/api/pinned-projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({
+          repoId: repo.id.toString(),
+          name: repo.name,
+          description: repo.description,
+          html_url: repo.html_url
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchDashboardData(); 
+      }
+    } catch (err) { 
+      alert("Failed to update project visibility."); 
+    }
   };
 
   const togglePinReview = async (id) => {
@@ -207,20 +246,26 @@ const Admin = () => {
   };
 
   // --- SERVICES LOGIC ---
+  // --- SERVICES LOGIC ---
   const handleAddService = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("adminToken");
-      const res = await fetch("http://localhost:5000/api/services", {
-        method: "POST",
+      const isEditing = !!newService._id; // Check if we are updating
+      const url = isEditing ? `http://localhost:5000/api/services/${newService._id}` : "http://localhost:5000/api/services";
+      const method = isEditing ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method: method,
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(newService)
       });
       if(res.ok) {
         setNewService({ title: '', description: '', icon: '🔧', price: '' }); 
         fetchDashboardData(); 
+        alert(`Service ${isEditing ? 'Updated' : 'Added'} Successfully!`);
       }
-    } catch(err) { alert("Failed to add service"); }
+    } catch(err) { alert("Failed to save service"); }
   };
 
   const deleteService = async (id) => {
@@ -261,33 +306,52 @@ const Admin = () => {
   };
 
   // --- SKILLS LOGIC --- 
+  // --- SKILLS LOGIC --- 
   const handleAddSkill = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("adminToken");
-      const res = await fetch("http://localhost:5000/api/skill", { 
-        method: "POST",
+      const isEditing = !!newSkill._id; // Check if we are updating
+      const url = isEditing ? `http://localhost:5000/api/skill/${newSkill._id}` : "http://localhost:5000/api/skill";
+      const method = isEditing ? "PUT" : "POST";
+
+      const res = await fetch(url, { 
+        method: method,
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(newSkill)
       });
       if(res.ok) {
         setNewSkill({ name: '', description: '', icon: '💻', proficiency: 50, category: 'Tech' }); 
         fetchDashboardData(); 
+        alert(`Skill ${isEditing ? 'Updated' : 'Added'} Successfully!`);
       } else {
-        alert("Failed to add skill");
+        alert("Failed to save skill");
       }
-    } catch(err) { alert("Failed to add skill"); }
+    } catch(err) { alert("Failed to save skill"); }
   };
-
   const deleteSkill = async (id) => {
-    if(window.confirm("Delete this skill? It will be removed from the Skills page.")) {
+    if (!id) {
+      alert("Cannot delete: this skill has no ID.");
+      return;
+    }
+    if (window.confirm("Delete this skill? It will be removed from the Skills page.")) {
       try {
         const token = localStorage.getItem("adminToken");
-        await fetch(`http://localhost:5000/api/skill/${id}`, { 
-          method: 'DELETE', headers: { "Authorization": `Bearer ${token}` }
+        const res = await fetch(`http://localhost:5000/api/skill/${id}`, {
+          method: 'DELETE',
+          headers: { "Authorization": `Bearer ${token}` }
         });
-        fetchDashboardData();
-      } catch(err) { alert("Failed to delete skill"); }
+
+        if (res.ok) {
+          alert("✅ Skill deleted!");
+          fetchDashboardData();
+        } else {
+          alert(`❌ Delete failed. Status: ${res.status}`);
+        }
+      } catch (err) {
+        alert("❌ Server offline ya network error.");
+        console.error(err);
+      }
     }
   };
 
@@ -659,10 +723,10 @@ const Admin = () => {
       <div style={{ width: '250px', background: 'var(--bg-card)', borderRight: '1px solid var(--border-color)', padding: '30px 20px', display: 'flex', flexDirection: 'column' }}>
         <h2 style={{ color: 'var(--accent)', fontSize: '20px', margin: '0 0 10px 0', fontFamily: 'monospace' }}>Shivam<span style={{color:'var(--text-main)'}}>.Admin</span></h2>
         <div style={{ padding: '8px', background: 'var(--bg-main)', borderRadius: '6px', fontSize: '12px', color: 'var(--text-dim)', marginBottom: '30px', textAlign: 'center', border: '1px dashed var(--border-color)' }}>
-          Logged in as: <strong style={{color: adminRole === 'superadmin' ? '#ff4d6d' : '#00e5ff'}}>{adminName} ({adminRole?.toUpperCase()})</strong>
+          Log in as: <strong style={{color: adminRole === 'superadmin' ? '#ff4d6d' : '#00e5ff'}}>{adminName} ({adminRole?.toUpperCase()})</strong>
         </div>
         
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flexGrow: 1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flexGrow: 1, overflowY: 'auto' }}>
           <SidebarBtn active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')}>📊 Overview</SidebarBtn>
           
           {hasPerm('messages') && <SidebarBtn active={activeTab === 'messages'} onClick={() => setActiveTab('messages')}>✉️ Messages</SidebarBtn>}
@@ -679,7 +743,12 @@ const Admin = () => {
           )}
 
           {hasPerm('reviews') && <SidebarBtn active={activeTab === 'reviews'} onClick={() => setActiveTab('reviews')}>⭐ Reviews</SidebarBtn>}
-          {hasPerm('cms') && <SidebarBtn active={activeTab === 'cms'} onClick={() => setActiveTab('cms')}>⚙️ Website Content</SidebarBtn>}
+          {hasPerm('cms') && (
+            <>
+              <SidebarBtn active={activeTab === 'cms'} onClick={() => setActiveTab('cms')}>⚙️ Website Content</SidebarBtn>
+              <SidebarBtn active={activeTab === 'github'} onClick={() => setActiveTab('github')} style={{color: activeTab === 'github' ? '#00f5a0' : 'var(--text-dim)'}}>🐙 GitHub Projects</SidebarBtn>
+            </>
+          )}
           
           <SidebarBtn active={activeTab === 'security'} onClick={() => setActiveTab('security')} style={{borderLeft: '4px solid #00f5a0'}}>🔒 Security</SidebarBtn>
           {adminRole === 'superadmin' && (
@@ -687,7 +756,7 @@ const Admin = () => {
           )}
         </div>
 
-        <button onClick={handleLogout} style={{ padding: '12px', background: 'rgba(255, 77, 77, 0.1)', color: '#ff4d4d', border: '1px solid rgba(255, 77, 77, 0.3)', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Logout</button>
+        <button onClick={handleLogout} style={{ marginTop: '10px', padding: '12px', background: 'rgba(255, 77, 77, 0.1)', color: '#ff4d4d', border: '1px solid rgba(255, 77, 77, 0.3)', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Logout</button>
       </div>
 
       {/* ── MAIN CONTENT AREA ── */}
@@ -702,6 +771,7 @@ const Admin = () => {
               {hasPerm('payments') && <StatCard title="Payment Verifications" value={paymentMessages?.length || 0} color="#ffb84d" />}
               {hasPerm('projects') && <StatCard title="Active Projects" value={clientProjects?.length || 0} color="#9b59b6" />}
               {hasPerm('services') && <StatCard title="Active Services" value={services?.length || 0} color="#ff4d6d" />}
+              {hasPerm('skills') && <StatCard title="Total Skills" value={skills?.length || 0} color="#00f5a0" />}
             </div>
           </motion.div>
         )}
@@ -813,16 +883,24 @@ const Admin = () => {
         {activeTab === 'services' && hasPerm('services') && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '10px' }}>Manage Services</h1>
-            <p style={{ color: 'var(--text-dim)', marginBottom: '30px' }}>Add or remove services. Changes will auto-sync to the Services & Payment pages.</p>
+            <p style={{ color: 'var(--text-dim)', marginBottom: '30px' }}>Add or edit services. Changes will auto-sync to the Services & Payment pages.</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', alignItems: 'flex-start' }}>
               <div style={{ flex: '1', minWidth: '300px', ...cmsCardStyle }}>
-                <h3 style={{ color: 'var(--accent)', margin: '0 0 20px 0' }}>➕ Add New Service</h3>
+                <h3 style={{ color: 'var(--accent)', margin: '0 0 20px 0' }}>
+                  {newService._id ? '✏️ Edit Service' : '➕ Add New Service'}
+                </h3>
                 <form onSubmit={handleAddService} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                   <div><label style={labelStyle}>Service Title</label><input type="text" required value={newService?.title || ''} onChange={e => setNewService({...newService, title: e.target.value})} placeholder="e.g. AI/ML Integration" style={inputStyle} /></div>
                   <div><label style={labelStyle}>Icon (Emoji)</label><input type="text" required value={newService?.icon || ''} onChange={e => setNewService({...newService, icon: e.target.value})} placeholder="💻" style={inputStyle} /></div>
                   <div><label style={labelStyle}>Price Description</label><input type="text" required value={newService?.price || ''} onChange={e => setNewService({...newService, price: e.target.value})} placeholder="e.g. Starting from $100" style={inputStyle} /></div>
                   <div><label style={labelStyle}>Short Description</label><textarea rows="3" required value={newService?.description || ''} onChange={e => setNewService({...newService, description: e.target.value})} placeholder="Describe..." style={{...inputStyle, resize: 'none'}}></textarea></div>
-                  <button type="submit" style={btnStyle}>Publish Service</button>
+                  
+                  <button type="submit" style={btnStyle}>{newService._id ? 'Update Service' : 'Publish Service'}</button>
+                  {newService._id && (
+                    <button type="button" onClick={() => setNewService({ title: '', description: '', icon: '🔧', price: '' })} style={{...btnStyle, background: 'transparent', color: '#ff4d4d', border: '1px solid #ff4d4d', marginTop: '5px'}}>
+                      Cancel Edit
+                    </button>
+                  )}
                 </form>
               </div>
 
@@ -838,6 +916,9 @@ const Admin = () => {
                     </div>
                     <p style={{ color: 'var(--text-dim)', fontSize: '13px', margin: '0 0 10px 0' }}>{srv.description}</p>
                     <p style={{ margin: 0, color: 'var(--accent)', fontWeight: 'bold', fontSize: '14px' }}>{srv.price}</p>
+                    
+                    {/* EDIT & DELETE BUTTONS */}
+                    <button onClick={() => setNewService(srv)} style={{ ...deleteBtnStyle, right: '85px', color: '#00e5ff', borderColor: '#00e5ff' }}>Edit</button>
                     <button onClick={() => deleteService(srv._id)} style={deleteBtnStyle}>Delete</button>
                   </div>
                 )})}
@@ -845,16 +926,17 @@ const Admin = () => {
             </div>
           </motion.div>
         )}
-
         {/* 🔥 FIX: BULLETPROOF SKILLS TAB 🔥 */}
         {activeTab === 'skills' && hasPerm('skills') && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '10px' }}>Manage Skills</h1>
-            <p style={{ color: 'var(--text-dim)', marginBottom: '30px' }}>Add or remove skills. Changes will auto-sync to the Skills page.</p>
+            <p style={{ color: 'var(--text-dim)', marginBottom: '30px' }}>Add or modify skills. Changes will auto-sync to the Skills page.</p>
             
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', alignItems: 'flex-start' }}>
               <div style={{ flex: '1', minWidth: '300px', ...cmsCardStyle }}>
-                <h3 style={{ color: 'var(--accent)', margin: '0 0 20px 0' }}>➕ Add New Skill</h3>
+                <h3 style={{ color: 'var(--accent)', margin: '0 0 20px 0' }}>
+                  {newSkill._id ? '✏️ Edit Skill' : '➕ Add New Skill'}
+                </h3>
                 <form onSubmit={handleAddSkill} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                   <div><label style={labelStyle}>Skill Name</label><input type="text" required value={newSkill?.name || ''} onChange={e => setNewSkill({...newSkill, name: e.target.value})} placeholder="e.g. React.js" style={inputStyle} /></div>
                   <div style={{ display: 'flex', gap: '15px' }}>
@@ -863,7 +945,13 @@ const Admin = () => {
                   </div>
                   <div><label style={labelStyle}>Category</label><input type="text" required value={newSkill?.category || ''} onChange={e => setNewSkill({...newSkill, category: e.target.value})} placeholder="e.g. Frontend" style={inputStyle} /></div>
                   <div><label style={labelStyle}>Description</label><textarea rows="3" required value={newSkill?.description || ''} onChange={e => setNewSkill({...newSkill, description: e.target.value})} placeholder="Describe..." style={{...inputStyle, resize: 'none'}}></textarea></div>
-                  <button type="submit" style={btnStyle}>Publish Skill</button>
+                  
+                  <button type="submit" style={btnStyle}>{newSkill._id ? 'Update Skill' : 'Publish Skill'}</button>
+                  {newSkill._id && (
+                    <button type="button" onClick={() => setNewSkill({ name: '', description: '', icon: '💻', proficiency: 50, category: 'Tech' })} style={{...btnStyle, background: 'transparent', color: '#ff4d4d', border: '1px solid #ff4d4d', marginTop: '5px'}}>
+                      Cancel Edit
+                    </button>
+                  )}
                 </form>
               </div>
 
@@ -871,7 +959,7 @@ const Admin = () => {
                 <h3 style={{ color: 'var(--text-main)', margin: '0 0 5px 0' }}>Live Skills ({skills?.length || 0})</h3>
                 {skills?.length === 0 ? <p style={{ color: 'var(--text-dim)' }}>No skills added yet.</p> : null}
                 {skills?.map((skill, idx) => {
-                  if(!skill) return null; // Fallback so page doesn't crash on corrupted DB entry
+                  if(!skill) return null; 
                   return (
                   <div key={skill._id || idx} style={{ background: 'var(--bg-card)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', position: 'relative' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
@@ -880,7 +968,10 @@ const Admin = () => {
                     </div>
                     <p style={{ color: 'var(--text-dim)', fontSize: '13px', margin: '0 0 10px 0' }}>{skill.description || 'No description'}</p>
                     <span style={{ background: 'rgba(0, 229, 255, 0.1)', color: 'var(--accent)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>{skill.category || 'Tech'}</span>
-                    <button onClick={() => deleteSkill(skill._id)} style={deleteBtnStyle}>Delete</button>
+                    
+                    {/* EDIT & DELETE BUTTONS */}
+                    <button onClick={() => setNewSkill(skill)} style={{ ...deleteBtnStyle, right: '85px', color: '#00e5ff', borderColor: '#00e5ff', opacity: skill._id ? 1 : 0.4 }} disabled={!skill._id}>Edit</button>
+                    <button onClick={() => deleteSkill(skill._id)} disabled={!skill._id} style={{ ...deleteBtnStyle, opacity: skill._id ? 1 : 0.4 }}>Delete</button>
                   </div>
                 )})}
               </div>
@@ -1060,13 +1151,16 @@ const Admin = () => {
               </div>
 
               <div style={cmsCardStyle}>
-                <h3 style={{ color: 'var(--accent)', margin: '0 0 15px 0' }}>📞 Contact Details</h3>
-                <label style={labelStyle}>Official Email</label>
-                <input type="email" value={contactData?.email || ''} onChange={e => setContactData({...contactData, email: e.target.value})} placeholder="you@company.com" style={inputStyle} />
-                <label style={labelStyle}>Official Phone</label>
-                <input type="text" value={contactData?.phone || ''} onChange={e => setContactData({...contactData, phone: e.target.value})} placeholder="+91 9876543210" style={inputStyle} />
-                <label style={labelStyle}>Office Address (Optional)</label>
-                <input type="text" value={contactData?.address || ''} onChange={e => setContactData({...contactData, address: e.target.value})} placeholder="City, Country" style={inputStyle} />
+                <h3 style={{ color: 'var(--accent)', margin: '0 0 15px 0' }}>📞 Contact Details & Links</h3>
+                {contactData.map((link, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                    <input type="text" value={link.icon || ''} onChange={e => { const newLinks=[...contactData]; newLinks[idx].icon=e.target.value; setContactData(newLinks); }} placeholder="Emoji" style={{...inputStyle, flex: 0.5, marginBottom: 0}} />
+                    <input type="text" value={link.title || ''} onChange={e => { const newLinks=[...contactData]; newLinks[idx].title=e.target.value; setContactData(newLinks); }} placeholder="Link Title" style={{...inputStyle, flex: 1, marginBottom: 0}} />
+                    <input type="text" value={link.url || ''} onChange={e => { const newLinks=[...contactData]; newLinks[idx].url=e.target.value; setContactData(newLinks); }} placeholder="URL" style={{...inputStyle, flex: 2, marginBottom: 0}} />
+                    <button type="button" onClick={() => { const newLinks=[...contactData]; newLinks.splice(idx,1); setContactData(newLinks); }} style={{...btnStyle, width: 'auto', background: 'transparent', color: '#ff4d4d', border: '1px solid #ff4d4d', padding: '0 10px'}}>X</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => setContactData([...contactData, { title: '', url: '', icon: '🔗' }])} style={{...btnStyle, background: 'transparent', color: 'var(--accent)', border: '1px solid var(--accent)', marginTop: '10px'}}>+ Add Link</button>
               </div>
 
               <div style={cmsCardStyle}>
@@ -1083,6 +1177,45 @@ const Admin = () => {
 
               <button type="submit" style={{ ...btnStyle, padding: '15px', fontSize: '16px' }}>Apply Changes to Website 🚀</button>
             </form>
+          </motion.div>
+        )}
+
+        {/* 🔥 NEW: GITHUB PROJECTS MANAGEMENT 🔥 */}
+        {activeTab === 'github' && hasPerm('cms') && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <h1 style={{ marginBottom: '10px' }}>Manage GitHub Projects</h1>
+            <p style={{ color: 'var(--text-dim)', marginBottom: '30px' }}>Select which GitHub repositories should be displayed on your Home and Resume pages.</p>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+              {githubProjects.length === 0 ? <p style={{ color: 'var(--text-dim)' }}>Loading GitHub projects...</p> : null}
+              {githubProjects.map(repo => {
+                const isPinned = pinnedProjects.some(p => p.repoId === repo.id.toString());
+                return (
+                  <div key={repo.id} style={{ background: 'var(--bg-card)', padding: '20px', borderRadius: '12px', border: isPinned ? '1px solid #00f5a0' : '1px solid var(--border-color)', position: 'relative' }}>
+                    <h3 style={{ margin: '0 0 10px 0', color: 'var(--text-main)', textTransform: 'capitalize' }}>{repo.name.replace(/-/g, ' ')}</h3>
+                    <p style={{ color: 'var(--text-dim)', fontSize: '13px', marginBottom: '20px', minHeight: '40px' }}>{repo.description || "No description available."}</p>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <a href={repo.html_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontSize: '13px', textDecoration: 'none' }}>View Repo ↗</a>
+                      
+                      <button 
+                        onClick={() => toggleGitHubPin(repo)}
+                        style={{ 
+                          padding: '8px 15px', 
+                          background: isPinned ? 'rgba(0, 245, 160, 0.1)' : 'transparent', 
+                          color: isPinned ? '#00f5a0' : 'var(--text-dim)', 
+                          border: isPinned ? '1px solid #00f5a0' : '1px solid var(--border-color)', 
+                          borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px',
+                          transition: 'all 0.3s'
+                        }}
+                      >
+                        {isPinned ? '✅ Shown on Website' : '❌ Hidden'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </motion.div>
         )}
 

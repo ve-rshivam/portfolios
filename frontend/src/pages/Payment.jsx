@@ -7,25 +7,36 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 const Payment = () => {
   const location = useLocation(); 
   const navigate = useNavigate();
-  const preSelectedService = location.state?.preSelectedService || '';
+  
+  // Portal Navigation State Extraction
+  const portalData = location.state || {};
+  const preSelectedService = portalData.preSelectedService || '';
+  const isRemainingPayment = portalData.isRemainingPayment || false;
 
-  const [step, setStep] = useState(1);
+  // Agar remaining payment hai, toh seedha Step 2 dikhayenge
+  const [step, setStep] = useState(isRemainingPayment ? 2 : 1);
   const [verifyStatus, setVerifyStatus] = useState("");
   const [servicesList, setServicesList] = useState([]); 
   
-  // Client Details State (Step 1)
-  const [clientDetails, setClientDetails] = useState({
-    name: '', email: '', phone: '', service: preSelectedService || 'Full-Stack Web Development'
-  });
-
+  // Feature 1: Slider State
+  const [paymentPercent, setPaymentPercent] = useState(100);
   const [paymentStatusMessage, setPaymentStatusMessage] = useState(''); 
+  
+  // Client Details State
+  const [clientDetails, setClientDetails] = useState({
+    name: portalData.clientName || '', 
+    email: portalData.clientEmail || '', 
+    phone: portalData.clientPhone || '', 
+    service: portalData.service || preSelectedService || 'Full-Stack Web Development',
+    projectId: portalData.projectId || null
+  });
 
   // Ensure Pre-selected Service stays selected
   useEffect(() => {
-    if (preSelectedService) {
+    if (preSelectedService && !isRemainingPayment) {
       setClientDetails(prev => ({ ...prev, service: preSelectedService }));
     }
-  }, [preSelectedService]);
+  }, [preSelectedService, isRemainingPayment]);
 
   // Auto-Fetch Services from Backend
   useEffect(() => {
@@ -36,7 +47,7 @@ const Payment = () => {
           const data = await res.json();
           setServicesList(data);
           
-          if (data && data.length > 0 && !preSelectedService) {
+          if (data && data.length > 0 && !preSelectedService && !isRemainingPayment) {
             setClientDetails(prev => ({ ...prev, service: data[0].title }));
           }
         }
@@ -45,7 +56,7 @@ const Payment = () => {
       }
     };
     fetchServices();
-  }, [preSelectedService]);
+  }, [preSelectedService, isRemainingPayment]);
 
   // --- Mouse Proximity Glow Logic ---
   const mouseX = useMotionValue(0);
@@ -69,6 +80,17 @@ const Payment = () => {
     outline: 'none', fontFamily: 'Inter, monospace', width: '100%', boxSizing: 'border-box',
     transition: 'border-color 0.3s ease'
   };
+
+  // ==========================================
+  // SMART PAYMENT CALCULATIONS
+  // ==========================================
+  const selectedSrvForMath = servicesList.find(s => s.title === clientDetails.service);
+  const baseTotal = selectedSrvForMath ? parseInt(selectedSrvForMath.price.replace(/\D/g, "") || "100", 10) : 100;
+  
+  // Custom logic for Portal Remaining Payment
+  const totalAmount = isRemainingPayment ? portalData.remainingAmount : baseTotal;
+  const amountToPay = isRemainingPayment ? totalAmount : Math.round((totalAmount * paymentPercent) / 100);
+  const remainingAmount = isRemainingPayment ? 0 : (totalAmount - amountToPay);
 
   // ==========================================
   // 🛡️ STRICT VALIDATION & 🔥 LEAD CAPTURE (Step 1)
@@ -114,9 +136,8 @@ const Payment = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-
   // ==========================================
-  // 🔥 DATABASE SUBMIT LOGIC (Step 2 Manual Proof) 🔥
+  // 🔥 DATABASE SUBMIT LOGIC (Step 2 Manual Proof)
   // ==========================================
   const handleVerifySubmit = async (e) => {
     e.preventDefault(); 
@@ -157,7 +178,11 @@ const Payment = () => {
       transaction_id: formData.get('transaction_id'),
       message: `Service: ${clientDetails.service} | Transaction ID: ${formData.get('transaction_id')}`,
       type: 'payment',
-      attachment: base64Image 
+      attachment: base64Image,
+      // Pass these securely to verify payment via manual check
+      projectId: clientDetails.projectId,
+      isRemainingPayment: isRemainingPayment,
+      amountPaid: amountToPay
     };
 
     try {
@@ -171,10 +196,14 @@ const Payment = () => {
         setVerifyStatus("✅ Payment Proof Submitted & Admin Notified!");
         formElement.reset(); 
         setTimeout(() => {
-          setStep(1); 
-          setVerifyStatus("");
-          const firstService = servicesList.length > 0 ? servicesList[0].title : 'Full-Stack Web Development';
-          setClientDetails({name: '', email: '', phone: '', service: firstService});
+          if(isRemainingPayment) {
+            navigate('/portal');
+          } else {
+            setStep(1); 
+            setVerifyStatus("");
+            const firstService = servicesList.length > 0 ? servicesList[0].title : 'Full-Stack Web Development';
+            setClientDetails({name: '', email: '', phone: '', service: firstService});
+          }
         }, 3000);
       } else {
         const errorText = await dbRes.text();
@@ -187,18 +216,8 @@ const Payment = () => {
   };
 
   // ==========================================
-  // 🔥 AUTOMATED GATEWAYS LOGIC (RAZORPAY & PAYPAL) 🔥
+  // 🔥 AUTOMATED GATEWAYS LOGIC (RAZORPAY & PAYPAL)
   // ==========================================
-  
-  // Helper: Extract Numeric Price
-  const getNumericPrice = () => {
-    const selectedSrv = servicesList.find(s => s.title === clientDetails.service);
-    if (!selectedSrv) return "100"; // fallback default amount
-    const numericMatch = selectedSrv.price.match(/\d+/g);
-    return numericMatch ? numericMatch.join('') : "100";
-  };
-
-  // 🛠️ DYNAMIC RAZORPAY SCRIPT LOADER
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       const script = document.createElement("script");
@@ -209,11 +228,9 @@ const Payment = () => {
     });
   };
 
-  // 🛠️ FIX: SECURE RAZORPAY PAYMENT HANDLER
   const handleRazorpayPayment = async () => {
     setPaymentStatusMessage("Initializing secure payment...");
     
-    // 1. Load Razorpay Script Dynamically
     const isScriptLoaded = await loadRazorpayScript();
     if (!isScriptLoaded) {
       setPaymentStatusMessage("❌ Failed to load Razorpay. Check your internet connection or adblocker.");
@@ -221,21 +238,22 @@ const Payment = () => {
     }
     
     const selectedSrv = servicesList.find(s => s.title === clientDetails.service);
-    const price = getNumericPrice(); 
     
-    // 🛡️ Request body safely prepared
+    // 🛡️ Request body safely prepared with Smart Payment Amounts
     const requestBody = {
-        amount: price,
+        amount: amountToPay,
+        totalAmount: totalAmount,
         currency: "INR",
-        serviceName: clientDetails.service
+        serviceName: clientDetails.service,
+        projectId: clientDetails.projectId,
+        isRemainingPayment: isRemainingPayment
     };
     
-    if (selectedSrv && selectedSrv._id) {
+    if (selectedSrv && selectedSrv._id && !isRemainingPayment) {
         requestBody.serviceId = selectedSrv._id;
     }
 
     try {
-      // 2. Backend se Order create karwao
       const orderRes = await fetch("http://localhost:5000/api/payment/razorpay-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -249,7 +267,6 @@ const Payment = () => {
         return; 
       }
 
-      // Check if Frontend Key is present
       const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
       if (!razorpayKey) {
         alert("❌ Frontend VITE_RAZORPAY_KEY_ID is missing in .env");
@@ -257,33 +274,47 @@ const Payment = () => {
         return;
       }
 
-      // 3. Razorpay Popup Options
       const options = {
         key: razorpayKey, 
         amount: orderData.order.amount,
         currency: "INR",
         name: "Shivam Portfolio",
-        description: clientDetails.service,
+        description: isRemainingPayment ? `Remaining Balance: ${clientDetails.service}` : clientDetails.service,
         order_id: orderData.order.id, 
         handler: async function (response) {
-          setPaymentStatusMessage("Verifying transaction on server...");
-          // 4. Backend Verification
+          setPaymentStatusMessage("Verifying transaction securely on server...");
           try {
             const verifyRes = await fetch("http://localhost:5000/api/payment/gateway-success", {
               method: "POST", 
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                name: clientDetails.name, email: clientDetails.email,
-                serviceName: clientDetails.service, transactionId: response.razorpay_payment_id
+                name: clientDetails.name, 
+                email: clientDetails.email,
+                serviceName: clientDetails.service, 
+                transactionId: response.razorpay_payment_id,
+                gateway: 'razorpay',
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                amountPaid: amountToPay,
+                totalAmount: isRemainingPayment ? portalData.originalTotal : totalAmount,
+                projectId: clientDetails.projectId,
+                isRemainingPayment: isRemainingPayment
               })
             });
             const backendData = await verifyRes.json();
+            
             if(backendData.success) {
-              setPaymentStatusMessage("✅ Payment Verified! Check email.");
-              alert(`Payment Success! Your Portal Access Key is: ${backendData.accessKey}`);
-              navigate('/portal');
+              setPaymentStatusMessage("✅ Payment Verified!");
+              if (isRemainingPayment) {
+                alert("Remaining Dues Cleared! Project updated to 100% Paid.");
+                navigate('/portal');
+              } else {
+                alert(`Payment Success! Your Portal Access Key is: ${backendData.accessKey}`);
+                navigate('/portal');
+              }
             } else {
-              setPaymentStatusMessage("❌ Verification failed.");
+              setPaymentStatusMessage(`❌ Verification failed: ${backendData.message}`);
             }
           } catch(verifyErr) {
             console.error("Verification Error:", verifyErr);
@@ -306,7 +337,6 @@ const Payment = () => {
 
       const rzp = new window.Razorpay(options);
       
-      // Catch Payment Failures
       rzp.on('payment.failed', function (response) {
         console.error("Payment Failed:", response.error);
         alert("Payment failed: " + response.error.description);
@@ -331,7 +361,6 @@ const Payment = () => {
       transition: 'background 0.3s ease, color 0.3s ease', overflowX: 'hidden'
     }}>
       
-      {/* Background Glow */}
       <div style={{ position: 'absolute', top: '0', left: '0', width: '100%', height: '100%', background: `radial-gradient(circle at center, var(--accent-glow) 0%, transparent 70%)`, zIndex: 0, pointerEvents: 'none' }} />
       <motion.div style={{ position: 'fixed', width: '400px', height: '400px', borderRadius: '50%', background: `radial-gradient(circle, var(--accent-glow) 0%, transparent 70%)`, pointerEvents: 'none', left: cursorGlowX, top: cursorGlowY, zIndex: 1 }} />
 
@@ -349,7 +378,7 @@ const Payment = () => {
         <AnimatePresence mode="wait">
           
           {/* ================= STEP 1: CLIENT DETAILS ================= */}
-          {step === 1 && (
+          {step === 1 && !isRemainingPayment && (
             <motion.div 
               key="step1" initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }}
               style={{ background: 'var(--bg-card)', padding: '40px 30px', borderRadius: '16px', border: '1px solid var(--border-color)', boxShadow: "0px 10px 30px rgba(0,0,0,0.1)" }}
@@ -408,9 +437,11 @@ const Payment = () => {
           {step === 2 && (
             <motion.div key="step2" initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
               
-              <button onClick={() => setStep(1)} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '14px', textDecoration: 'underline' }}>
-                ← Edit Details
-              </button>
+              {!isRemainingPayment && (
+                <button onClick={() => setStep(1)} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '14px', textDecoration: 'underline' }}>
+                  ← Edit Details
+                </button>
+              )}
 
               <div style={{ background: 'var(--bg-card)', padding: '40px 30px', borderRadius: '16px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                 <h2 style={{ color: 'var(--text-main)', fontSize: '20px', marginBottom: '10px' }}>Payment for: <span style={{color:'var(--accent)'}}>{clientDetails.service}</span></h2>
@@ -422,6 +453,48 @@ const Payment = () => {
                     </div>
                 )}
 
+                {/* --- SMART PAYMENT SLIDER OR REMAINING BALANCE UI --- */}
+                {isRemainingPayment ? (
+                  <div style={{ background: 'var(--bg-main)', padding: '20px', borderRadius: '12px', border: '1px dashed var(--border-color)', marginBottom: '20px', textAlign: 'left' }}>
+                    <h4 style={{ color: 'var(--text-main)', margin: '0 0 10px 0' }}>Clear Pending Dues</h4>
+                    <p style={{ color: 'var(--text-dim)', fontSize: '14px' }}>You are paying the remaining balance for this project.</p>
+                    <div style={{ marginTop: '15px', padding: '15px', background: 'var(--bg-card)', borderRadius: '8px', borderLeft: '4px solid var(--accent)' }}>
+                      <p style={{ margin: '0', color: 'var(--text-main)', fontSize: '18px' }}>
+                        <strong>Amount Due: <span style={{ color: 'var(--accent)' }}>${amountToPay}</span></strong>
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ background: 'var(--bg-main)', padding: '20px', borderRadius: '12px', border: '1px dashed var(--border-color)', marginBottom: '20px', textAlign: 'left' }}>
+                    <h4 style={{ color: 'var(--text-main)', margin: '0 0 15px 0' }}>Adjust Payment Amount</h4>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '14px' }}>
+                      <span style={{ color: 'var(--text-dim)' }}>Total Cost: ${totalAmount}</span>
+                      <span style={{ color: 'var(--text-dim)' }}>Min: 40%</span>
+                    </div>
+
+                    <input 
+                      type="range" 
+                      min="40" 
+                      max="100" 
+                      step="1"
+                      value={paymentPercent}
+                      onChange={(e) => setPaymentPercent(Number(e.target.value))}
+                      style={{ width: '100%', cursor: 'pointer', accentColor: 'var(--accent)' }}
+                    />
+                    
+                    <div style={{ marginTop: '15px', padding: '10px', background: 'var(--bg-card)', borderRadius: '8px', borderLeft: '4px solid var(--accent)' }}>
+                      <p style={{ margin: '0 0 5px 0', color: 'var(--text-main)', fontSize: '16px' }}>
+                        <strong>Paying Now ({paymentPercent}%): <span style={{ color: 'var(--accent)' }}>${amountToPay}</span></strong>
+                      </p>
+                      {remainingAmount > 0 && (
+                        <p style={{ margin: 0, color: '#ff4d6d', fontSize: '13px' }}>Remaining Balance: ${remainingAmount}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {/* --- UI END --- */}
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', alignItems: 'start' }}>
                   
                   {/* MANUAL UPI / QR BLOCK */}
@@ -432,7 +505,7 @@ const Payment = () => {
                       paytmqr6ex9gc@ptys
                     </span>
                     <motion.a 
-                      href="upi://pay?pa=paytmqr6ex9gc@ptys&pn=SHIVAM%20KUMAR&cu=INR"
+                      href={`upi://pay?pa=paytmqr6ex9gc@ptys&pn=SHIVAM%20KUMAR&cu=INR&am=${amountToPay}`}
                       whileHover={{ scale: 1.05, backgroundColor: "var(--accent)", color: "var(--bg-main)" }}
                       style={{ display: 'inline-block', padding: '10px 15px', background: 'transparent', color: 'var(--accent)', border: '2px solid var(--accent)', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', textDecoration: 'none', transition: '0.3s', marginBottom: '10px' }}
                     >
@@ -464,22 +537,37 @@ const Payment = () => {
                           createOrder={(data, actions) => {
                             return actions.order.create({
                               application_context: { shipping_preference: "NO_SHIPPING" },
-                              purchase_units: [{ description: clientDetails.service, amount: { value: getNumericPrice() } }]
+                              purchase_units: [{ description: clientDetails.service, amount: { value: amountToPay.toString() } }]
                             });
                           }}
                           onApprove={async (data, actions) => {
-                            setPaymentStatusMessage("Verifying PayPal transaction on server...");
+                            setPaymentStatusMessage("Verifying PayPal transaction on server securely...");
                             try {
                               const details = await actions.order.capture();
                               const res = await fetch("http://localhost:5000/api/payment/gateway-success", {
                                 method: "POST", headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ name: clientDetails.name, email: clientDetails.email, serviceName: clientDetails.service, transactionId: details.id })
+                                body: JSON.stringify({ 
+                                  name: clientDetails.name, 
+                                  email: clientDetails.email, 
+                                  serviceName: clientDetails.service, 
+                                  transactionId: details.id, 
+                                  gateway: 'paypal',
+                                  amountPaid: amountToPay,
+                                  totalAmount: isRemainingPayment ? portalData.originalTotal : totalAmount,
+                                  projectId: clientDetails.projectId,
+                                  isRemainingPayment: isRemainingPayment
+                                })
                               });
                               const backendData = await res.json();
                               if(backendData.success) {
-                                setPaymentStatusMessage("✅ Payment Verified! Access Key sent to email.");
-                                alert(`Payment Success! Your Portal Access Key is: ${backendData.accessKey}`);
-                                setTimeout(() => navigate('/portal'), 2000);
+                                setPaymentStatusMessage("✅ Payment Verified!");
+                                if (isRemainingPayment) {
+                                  alert("Remaining Dues Cleared! Project updated to 100% Paid.");
+                                  navigate('/portal');
+                                } else {
+                                  alert(`Payment Success! Your Portal Access Key is: ${backendData.accessKey}`);
+                                  setTimeout(() => navigate('/portal'), 2000);
+                                }
                               }
                             } catch (err) { setPaymentStatusMessage("❌ Payment capture failed on server."); }
                           }}

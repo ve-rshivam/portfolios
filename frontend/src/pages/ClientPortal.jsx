@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const ClientPortal = () => {
+  const navigate = useNavigate();
+
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem('clientLoggedIn') === 'true';
   });
   const [loginData, setLoginData] = useState({ email: '', accessKey: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [projectData, setProjectData] = useState(() => {
-    const saved = localStorage.getItem('clientProjectData');
-    return saved ? JSON.parse(saved) : null;
+  
+  // Feature 2: Projects Array State instead of single project object
+  const [projectsList, setProjectsList] = useState(() => {
+    const saved = localStorage.getItem('clientProjectsList');
+    return saved ? JSON.parse(saved) : [];
   });
+  
+  // Active Project Selection State
+  const [activeProjectId, setActiveProjectId] = useState(null);
 
   // Forgot Password States
   const [showForgot, setShowForgot] = useState(false);
@@ -32,27 +40,34 @@ const ClientPortal = () => {
   const [clientReply, setClientReply] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
 
+  // Helper to get currently active project
+  const projectData = projectsList.find(p => p._id === activeProjectId) || projectsList[0];
+
   useEffect(() => {
     const refreshProjectData = async () => {
       const savedEmail = localStorage.getItem('clientEmail');
       if (!isLoggedIn || !savedEmail) return;
       try {
-        const res = await fetch("http://localhost:5000/api/client/get-project", {
+        const res = await fetch("http://localhost:5000/api/client/get-projects", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: savedEmail })
         });
         const data = await res.json();
-        if (data.success && data.project) {
-          setProjectData(data.project);
-          localStorage.setItem('clientProjectData', JSON.stringify(data.project));
+        if (data.success && data.projects && data.projects.length > 0) {
+          setProjectsList(data.projects);
+          localStorage.setItem('clientProjectsList', JSON.stringify(data.projects));
+          
+          if (!activeProjectId) {
+            setActiveProjectId(data.projects[0]._id);
+          }
         }
       } catch (err) {
         console.log("Refresh failed, using cached data.");
       }
     };
     refreshProjectData();
-  }, []);
+  }, [isLoggedIn, activeProjectId]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -69,18 +84,21 @@ const ClientPortal = () => {
       console.log("Backend response:", JSON.stringify(data, null, 2));
 
       if (data.success) {
-        if (!data.project || !data.project.clientName) {
+        if (!data.projects || data.projects.length === 0) {
           setError("Please contact the administrator. Your project data is missing.");
           setLoading(false);
           return;
         }
         localStorage.setItem('clientLoggedIn', 'true');
         localStorage.setItem('clientEmail', loginData.email);
-        localStorage.setItem('clientProjectData', JSON.stringify(data.project));
-        setProjectData(data.project);
+        localStorage.setItem('clientProjectsList', JSON.stringify(data.projects));
+        
+        setProjectsList(data.projects);
+        setActiveProjectId(data.projects[0]._id);
         setIsLoggedIn(true);
 
-        setIsTempKey(data.project.isTemporaryKey || false);
+        // Security check via the first mapped project
+        setIsTempKey(data.projects[0].isTemporaryKey || false);
         setShowWelcomePopup(true);
 
       } else {
@@ -96,9 +114,10 @@ const ClientPortal = () => {
   const handleLogout = () => {
     localStorage.removeItem('clientLoggedIn');
     localStorage.removeItem('clientEmail');
-    localStorage.removeItem('clientProjectData');
+    localStorage.removeItem('clientProjectsList');
     setIsLoggedIn(false);
-    setProjectData(null);
+    setProjectsList([]);
+    setActiveProjectId(null);
     setLoginData({ email: '', accessKey: '' });
     setShowWelcomePopup(false);
     setShowSettings(false);
@@ -133,11 +152,10 @@ const ClientPortal = () => {
   // 🔥 NEW: Handle Client Reply Submission 🔥
   const handleSendReply = async (e) => {
     e.preventDefault();
-    if (!clientReply.trim()) return;
+    if (!clientReply.trim() || !projectData) return;
     
     setIsSendingReply(true);
     try {
-      // Is endpoint ko apne server.js me zaroor banaiyega (e.g. /api/client/send-message)
       const res = await fetch("http://localhost:5000/api/client/send-message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -155,6 +173,23 @@ const ClientPortal = () => {
     } finally {
       setIsSendingReply(false);
     }
+  };
+
+  // 🔥 FEATURE: Pay Remaining Dues Redirect
+  const handlePayRemaining = () => {
+    if (!projectData) return;
+    
+    navigate('/payment', { 
+      state: { 
+        isRemainingPayment: true,
+        projectId: projectData._id,
+        service: projectData.projectTitle,
+        clientName: projectData.clientName,
+        clientEmail: projectData.clientEmail,
+        remainingAmount: projectData.balanceDue,
+        originalTotal: projectData.totalCost
+      } 
+    });
   };
 
   const inputStyle = { padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', outline: 'none', width: '100%', boxSizing: 'border-box', fontSize: '15px' };
@@ -200,9 +235,8 @@ const ClientPortal = () => {
                     Welcome Back, {projectData.clientName}!
                   </h2>
                   <p style={{ color: 'var(--text-dim)', lineHeight: '1.7', marginBottom: '25px', fontSize: '15px' }}>
-                    Your project <strong style={{ color: 'var(--text-main)' }}>{projectData.projectTitle}</strong> is currently{' '}
-                    <strong style={{ color: 'var(--accent)' }}>{projectData.progress}% complete</strong>.<br /><br />
-                    You can view the latest updates in the dashboard below.
+                    You have <strong style={{ color: 'var(--text-main)' }}>{projectsList.length}</strong> active project(s) on your dashboard.<br /><br />
+                    You can view the latest updates below.
                   </p>
                   <button
                     onClick={() => setShowWelcomePopup(false)}
@@ -351,10 +385,9 @@ const ClientPortal = () => {
         // ================= CLIENT DASHBOARD =================
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ maxWidth: '900px', margin: '0 auto' }}>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px', flexWrap: 'wrap', gap: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '20px' }}>
             <div>
               <h1 style={{ margin: '0 0 5px 0', fontSize: '32px' }}>Welcome, <span style={{ color: 'var(--accent)' }}>{projectData.clientName}</span></h1>
-              <p style={{ color: 'var(--text-dim)', margin: 0 }}>Project: <strong style={{ color: 'var(--text-main)' }}>{projectData.projectTitle}</strong></p>
             </div>
             
             {/* 🔥 NEW: GEAR ICON & SETTINGS DROPDOWN / SIDEBAR 🔥 */}
@@ -390,11 +423,42 @@ const ClientPortal = () => {
             </div>
           </div>
 
+          {/* 🔥 FEATURE 2: MULTI-PROJECT TABS NAVIGATION 🔥 */}
+          {projectsList && projectsList.length > 1 && (
+            <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginBottom: '30px', paddingBottom: '10px', borderBottom: '1px solid var(--border-color)' }}>
+              {projectsList.map((p) => (
+                <button
+                  key={p._id}
+                  onClick={() => setActiveProjectId(p._id)}
+                  style={{
+                    padding: '10px 20px',
+                    background: activeProjectId === p._id ? 'var(--accent-glow)' : 'transparent',
+                    color: activeProjectId === p._id ? 'var(--accent)' : 'var(--text-dim)',
+                    border: activeProjectId === p._id ? '1px solid var(--accent)' : '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  {p.projectTitle}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
 
             {/* PROGRESS CARD */}
             <div style={{ background: 'var(--bg-card)', padding: '30px', borderRadius: '16px', border: '1px solid var(--border-color)', gridColumn: '1 / -1' }}>
-              <h3 style={{ margin: '0 0 20px 0', color: 'var(--text-dim)', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>Current Progress</h3>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <h3 style={{ margin: '0 0 20px 0', color: 'var(--text-dim)', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>Current Progress</h3>
+                <span style={{ fontSize: '14px', color: 'var(--text-main)', background: 'var(--bg-main)', padding: '5px 15px', borderRadius: '20px', border: '1px solid var(--border-color)' }}>
+                  Active Project: <strong style={{ color: 'var(--accent)' }}>{projectData.projectTitle}</strong>
+                </span>
+              </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <span style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--accent)' }}>{projectData.status}</span>
@@ -416,7 +480,20 @@ const ClientPortal = () => {
             <div style={cardStyle}>
               <div style={{ fontSize: '30px', marginBottom: '10px' }}>💳</div>
               <h4 style={{ color: 'var(--text-dim)', margin: '0 0 5px 0' }}>Payment Status</h4>
-              <h2 style={{ margin: 0, color: '#00f5a0' }}>{projectData.paymentStatus}</h2>
+              <h2 style={{ margin: '0 0 15px 0', color: projectData.balanceDue > 0 ? '#ffaa00' : '#00f5a0' }}>{projectData.paymentStatus}</h2>
+              
+              {/* Feature: Pay Remaining Dues */}
+              {projectData.balanceDue > 0 && (
+                <div style={{ width: '100%', borderTop: '1px solid var(--border-color)', paddingTop: '15px' }}>
+                  <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: 'var(--text-main)' }}>Remaining Due: <strong style={{ color: '#ff4d6d' }}>${projectData.balanceDue}</strong></p>
+                  <button 
+                    onClick={handlePayRemaining}
+                    style={{ padding: '10px 15px', background: 'transparent', color: '#ffaa00', border: '1px solid #ffaa00', borderRadius: '8px', cursor: 'pointer', width: '100%', fontWeight: 'bold' }}
+                  >
+                    Pay Remaining Balance ➔
+                  </button>
+                </div>
+              )}
             </div>
 
             <div style={cardStyle}>
@@ -428,7 +505,7 @@ const ClientPortal = () => {
             {/* ADMIN NOTES & CLIENT REPLY SECTION */}
             <div style={{ ...cardStyle, gridColumn: '1 / -1', background: 'rgba(0, 229, 255, 0.05)', border: '1px dashed var(--accent)', padding: '30px' }}>
               <h3 style={{ color: 'var(--accent)', margin: '0 0 10px 0', fontSize: '20px' }}>🔔 Latest Update from Shivam</h3>
-              <p style={{ color: 'var(--text-main)', margin: '0 0 25px 0', lineHeight: '1.6', fontSize: '16px' }}>
+              <p style={{ color: 'var(--text-main)', margin: '0 0 25px 0', lineHeight: '1.6', fontSize: '16px', whiteSpace: 'pre-wrap' }}>
                 {projectData.notes || 'No new updates right now. Working on your project!'}
               </p>
               

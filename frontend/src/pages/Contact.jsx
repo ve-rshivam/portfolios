@@ -5,6 +5,19 @@ import { OrbitControls, MeshWobbleMaterial, Torus } from '@react-three/drei';
 
 const Contact = () => {
   const [result, setResult] = useState("");
+  const [contactLinks, setContactLinks] = useState([]);
+
+  // Fetch CMS Content
+  useEffect(() => {
+    fetch("http://localhost:5000/api/content")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.contactData && Array.isArray(data.contactData)) {
+          setContactLinks(data.contactData);
+        }
+      })
+      .catch(err => console.log("Content fetch error", err));
+  }, []);
 
   // --- Mouse Proximity Glow Logic ---
   const mouseX = useMotionValue(0);
@@ -30,9 +43,9 @@ const Contact = () => {
   const onSubmit = async (event) => {
     event.preventDefault();
     setResult("Sending message...");
-    
+
     const formData = new FormData(event.target);
-    
+
     // Database me save karne ke liye data object
     const data = {
       name: formData.get('name'),
@@ -46,7 +59,7 @@ const Contact = () => {
       // 1. Email Send Karna (Web3Forms API)
       const web3FormData = new FormData(event.target);
       web3FormData.append("access_key", "YOUR_WEB3FORMS_ACCESS_KEY_HERE"); // 👈 YAHAN APNI KEY DALEIN
-      
+
       await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         body: web3FormData
@@ -94,13 +107,13 @@ const Contact = () => {
   };
 
   return (
-    <div style={{ 
+    <div style={{
       position: 'relative',
-      display: 'flex', 
-      minHeight: '100vh', 
-      alignItems: 'center', 
-      justifyContent: 'space-between', 
-      flexWrap: 'wrap', 
+      display: 'flex',
+      minHeight: '100vh',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
       padding: '120px 8vw 80px 8vw',
       background: 'var(--bg-main)',
       color: 'var(--text-main)',
@@ -108,7 +121,7 @@ const Contact = () => {
       fontFamily: 'Inter, sans-serif',
       transition: 'background 0.3s ease, color 0.3s ease'
     }}>
-      
+
       {/* --- Page Body Glow (Subtle Fixed Gradient) --- */}
       <div style={{
         position: 'absolute', top: '0', left: '0', width: '100%', height: '100%',
@@ -130,10 +143,10 @@ const Contact = () => {
 
       {/* --- Content Wrapper --- */}
       <div style={{ position: 'relative', zIndex: 5, width: '100%', display: 'flex', flexWrap: 'wrap', gap: '50px', alignItems: 'center' }}>
-        
+
         {/* ================= LEFT SIDE: Form & Socials ================= */}
         <div style={{ flex: 1.2, minWidth: '320px', perspective: '2000px' }}>
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             style={{ color: 'var(--text-main)', fontSize: 'clamp(35px, 5vw, 50px)', margin: '0 0 10px 0', fontWeight: 'bold' }}
@@ -145,12 +158,12 @@ const Contact = () => {
           </p>
 
           {/* 3D ANIMATED FORM */}
-          <motion.form 
+          <motion.form
             onSubmit={onSubmit}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            whileHover={{ 
+            whileHover={{
               y: -10,
               scale: 1.02,
               rotateX: 2,   // Slight 3D tilt
@@ -158,9 +171,9 @@ const Contact = () => {
               boxShadow: "0px 20px 50px var(--accent-glow)",
               borderColor: "var(--accent)"
             }}
-            style={{ 
-              display: 'flex', flexDirection: 'column', gap: '20px', 
-              background: 'var(--bg-card)', padding: '40px', 
+            style={{
+              display: 'flex', flexDirection: 'column', gap: '20px',
+              background: 'var(--bg-card)', padding: '40px',
               borderRadius: '20px', border: '1px solid var(--border-color)',
               transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
               transformStyle: 'preserve-3d'
@@ -170,13 +183,13 @@ const Contact = () => {
             <input type="email" name="email" placeholder="Email Address" required style={inputStyle} />
             <input type="tel" name="phone" placeholder="Mobile (Optional)" style={inputStyle} />
             <textarea name="message" placeholder="Your Message..." required rows="4" style={{ ...inputStyle, resize: 'none' }}></textarea>
-            
-            <motion.button 
+
+            <motion.button
               type="submit"
               whileHover={{ scale: 1.02, backgroundColor: "var(--accent)", color: "var(--bg-main)", boxShadow: "0px 10px 20px var(--accent-glow)" }}
               whileTap={{ scale: 0.95 }}
-              style={{ 
-                padding: '15px', background: 'transparent', color: 'var(--accent)', 
+              style={{
+                padding: '15px', background: 'transparent', color: 'var(--accent)',
                 border: '2px solid var(--accent)', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px',
                 cursor: 'pointer', transition: 'all 0.3s ease', marginTop: '10px'
               }}
@@ -190,7 +203,7 @@ const Contact = () => {
           <div style={{ marginTop: '40px', display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
             {socials.map((social, index) => (
               <motion.a
-                key={index}
+                key={`social-${index}`}
                 href={social.url}
                 target="_blank"
                 rel="noreferrer"
@@ -217,6 +230,40 @@ const Contact = () => {
                 {social.name}
               </motion.a>
             ))}
+
+            {contactLinks.map((link, index) => {
+              const dynColor = ["#ff0055", "#00e5ff", "#8a2be2", "#ffaa00", "#00ff66", "#e4405f"][index % 6];
+              return (
+              <motion.a
+                key={`custom-${index}`}
+                href={link.url}
+                target="_blank"
+                rel="noreferrer"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 + ((socials.length + index) * 0.1) }}
+                whileHover={{ y: -5, scale: 1.05, borderColor: dynColor, boxShadow: `0px 10px 20px ${dynColor}40` }}
+                style={{
+                  padding: '12px 24px',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-main)',
+                  border: `1px solid var(--border-color)`,
+                  borderRadius: '30px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: dynColor, boxShadow: `0 0 10px ${dynColor}` }}></span>
+                {link.icon && link.icon.trim() !== '' ? <span>{link.icon}</span> : null}
+                {link.title}
+              </motion.a>
+              );
+            })}
           </div>
         </div>
 
@@ -246,9 +293,9 @@ const Contact = () => {
         cursor: 'pointer',
         zIndex: 50,
       }}
-      whileHover={{ scale: 1.1, rotate: 10 }}
+        whileHover={{ scale: 1.1, rotate: 10 }}
       >
-        🚀 
+        🚀
       </motion.div>
 
     </div>

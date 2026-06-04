@@ -162,7 +162,7 @@ const Experience = () => {
                   <h3 style={{ margin: '0 0 5px 0', fontSize: '22px', fontWeight: 'bold' }}>{exp.role || "Software Engineer"}</h3>
                   <h4 style={{ margin: '0 0 15px 0', fontSize: '16px', color: 'var(--accent)', fontStyle: 'italic' }}>@ {exp.company || "Tech Corp"}</h4>
                   <p style={{ margin: 0, color: 'var(--text-dim)', lineHeight: '1.7', fontSize: '15px' }}>
-                    {exp.description || "Developed amazing features and improved system performance."}
+                  {exp.description || "Developed amazing features and improved system performance."}
                   </p>
                 </motion.div>
               </div>

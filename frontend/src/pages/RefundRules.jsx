@@ -34,7 +34,7 @@ const RefundRules = ({ fontSize = '15px' }) => {
   return (
     <ul style={{ color: 'var(--text-dim)', fontSize: fontSize, lineHeight: '1.8', margin: 0, paddingLeft: '20px' }}>
       <li style={{ marginBottom: '15px' }}>
-        <strong style={{ color: 'var(--text-main)' }}>Advance Payment:</strong> A <span style={highlightStyle}>50% advance payment</span> is mandatory to secure your project slot and commence initial research and setup.
+        <strong style={{ color: 'var(--text-main)' }}>Advance Payment:</strong> A <span style={highlightStyle}>40-50% advance payment</span> is mandatory to secure your project slot and commence initial research and setup.
       </li>
       
       <li style={{ marginBottom: '15px' }}>
@@ -42,11 +42,11 @@ const RefundRules = ({ fontSize = '15px' }) => {
         <br/><br/>
         To initiate a cancellation request during this period, please notify me immediately at: <br/>
         <motion.a 
-          href="mailto:getus.shivam@gmail.com?subject=Refund Request&body=Hi Shivam, I would like to formally request a refund for my project." 
+          href="mailto:support.shivam@gmail.com?subject=Refund Request&body=Hi Shivam Singh, I would like to formally request a refund for my project." 
           whileHover={{ backgroundColor: "rgba(0, 229, 255, 0.1)" }}
           style={{ color: 'var(--accent)', textDecoration: 'none', fontFamily: 'monospace', fontWeight: 'bold', padding: '6px 12px', border: '1px dashed var(--accent)', borderRadius: '6px', display: 'inline-block', marginTop: '10px' }}
         >
-          getus.shivam@gmail.com ↗
+          support.shivam@gmail.com ↗
         </motion.a>
       </li>
 

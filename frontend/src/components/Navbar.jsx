@@ -1,46 +1,69 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ThemeContext } from '../context/ThemeContext';
+// 🔥 SABSE ZAROORI IMPORT (Yeh React ko instantly update karne ke liye hai)
+import { flushSync } from 'react-dom'; 
 
 const Navbar = () => {
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Mobile Menu State
+  const { theme, toggleTheme: contextToggleTheme } = useContext(ThemeContext);
+  const [isDarkMode, setIsDarkMode] = useState(theme === 'dark');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  // Window resize handler for mobile detection
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const isMobile = windowWidth <= 1024; // Threshold for mobile view
+  const isMobile = windowWidth <= 1024;
 
   useEffect(() => {
-    setIsDarkMode(document.body.classList.contains('dark'));
-  }, []);
+    setIsDarkMode(theme === 'dark');
+  }, [theme]);
 
+  // 🔥 THE ULTIMATE THEME TOGGLE (With flushSync) 🔥
   const toggleTheme = (e) => {
-    const nextThemeIsDark = !isDarkMode;
+    // 1. Agar browser mein View API nahi hai, toh simple theme change
     if (!document.startViewTransition) {
-      document.body.className = nextThemeIsDark ? 'dark' : 'light';
-      setIsDarkMode(nextThemeIsDark);
+      contextToggleTheme();
       return;
     }
 
+    // 2. Exact Mouse Coordinates pata karo (Jahan click hua hai)
     const x = e.clientX || window.innerWidth / 2;
-    const y = e.clientY || 0;
+    const y = e.clientY || window.innerHeight / 2;
 
     const endRadius = Math.hypot(
       Math.max(x, window.innerWidth - x),
       Math.max(y, window.innerHeight - y)
     );
 
+    const isCurrentlyDark = theme === 'dark' || document.body.classList.contains('dark');
+
+    // 3. Animation shuru karo
     const transition = document.startViewTransition(() => {
-      document.body.className = nextThemeIsDark ? 'dark' : 'light';
-      setIsDarkMode(nextThemeIsDark);
+      // ✅ Step A: DOM ko turant badlo (Taaki animation delay na ho)
+      if (isCurrentlyDark) {
+        document.documentElement.classList.remove('dark');
+        document.body.classList.remove('dark');
+        document.documentElement.classList.add('light');
+        document.body.classList.add('light');
+      } else {
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('dark');
+        document.documentElement.classList.remove('light');
+        document.body.classList.remove('light');
+      }
+
+      // ✅ Step B: flushSync React ko force karega ki Context bhi isike sath update ho!
+      flushSync(() => {
+        contextToggleTheme();
+      });
     });
 
+    // 4. Ripple Circle Effects
     transition.ready.then(() => {
       document.documentElement.animate(
         {
@@ -50,7 +73,7 @@ const Navbar = () => {
           ]
         },
         {
-          duration: 600,
+          duration: 600, // 0.6 seconds ka smooth cinematic effect
           easing: 'ease-in-out',
           pseudoElement: '::view-transition-new(root)'
         }
@@ -70,22 +93,21 @@ const Navbar = () => {
       background: 'var(--nav-bg)',
       position: 'sticky', 
       top: 0,
-      zIndex: 999, // High z-index to stay above content
+      zIndex: 999, 
       backdropFilter: 'blur(10px)', 
       transition: 'background 0.3s ease, border-color 0.3s ease'
     }}>
       
-      {/* 1. Logo (Always visible on left) */}
+      {/* LOGO */}
       <h1 style={{ fontSize: '26px', fontWeight: 'bold', margin: 0, color: 'var(--text-main)', letterSpacing: '1px' }}>
         <Link to="/" style={{ color: 'inherit', textDecoration: 'none' }}>
           Shivam<span style={{ color: 'var(--accent)' }}>.</span>
         </Link>
       </h1>
 
-      {/* 2. Desktop Links / Mobile Toggles Container */}
       <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '15px' : '40px' }}>
         
-        {/* DESKTOP VIEW: Navigation Links */}
+        {/* DESKTOP LINKS */}
         {!isMobile && (
           <div style={{ display: 'flex', gap: '30px' }}>
             {navItems.map(item => (
@@ -108,7 +130,7 @@ const Navbar = () => {
           </div>
         )}
 
-        {/* 3. Circular Theme Toggle Button (Visible on both Mobile & Desktop) */}
+        {/* BUTTON: THEME TOGGLE */}
         <button 
           onClick={toggleTheme} 
           style={{
@@ -125,7 +147,7 @@ const Navbar = () => {
             cursor: 'pointer',
             transition: 'all 0.3s ease',
             outline: 'none',
-            zIndex: 1001 // Ensure it's clickable above mobile menu
+            zIndex: 1001 
           }}
           onMouseOver={(e) => {
             e.target.style.borderColor = 'var(--accent)';
@@ -141,7 +163,7 @@ const Navbar = () => {
           {isDarkMode ? '☀️' : '🌙'}
         </button>
 
-        {/* MOBILE VIEW: Hamburger Menu Icon */}
+        {/* MOBILE MENU ICON */}
         {isMobile && (
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -155,10 +177,9 @@ const Navbar = () => {
               border: 'none',
               cursor: 'pointer',
               padding: 0,
-              zIndex: 1001 // Stay above the dropdown
+              zIndex: 1001 
             }}
           >
-            {/* Animated Hamburger Lines */}
             <motion.div 
               animate={{ rotate: isMobileMenuOpen ? 45 : 0, y: isMobileMenuOpen ? 10 : 0 }}
               style={{ width: '30px', height: '3px', background: 'var(--text-main)', borderRadius: '10px', transformOrigin: '1px' }} 
@@ -175,7 +196,7 @@ const Navbar = () => {
         )}
       </div>
 
-      {/* MOBILE VIEW: Dropdown Menu Overlay */}
+      {/* MOBILE MENU OVERLAY */}
       <AnimatePresence>
         {isMobile && isMobileMenuOpen && (
           <motion.div
@@ -202,7 +223,7 @@ const Navbar = () => {
               <Link 
                 key={item} 
                 to={`/${item.toLowerCase() === 'home' ? '' : item.toLowerCase()}`} 
-                onClick={() => setIsMobileMenuOpen(false)} // Close menu on click
+                onClick={() => setIsMobileMenuOpen(false)} 
                 style={{
                   color: 'var(--text-main)', 
                   textDecoration: 'none', 

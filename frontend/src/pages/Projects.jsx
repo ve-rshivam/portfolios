@@ -27,10 +27,12 @@ const Projects = () => {
   const cursorGlowY = useTransform(mouseY, (y) => `${y - 200}px`);
 
   useEffect(() => {
-    fetch(`https://api.github.com/users/${githubUsername}/repos?sort=updated`)
+    // 🔥 FIX: 'per_page=100' added to fetch all repositories 🔥
+    fetch(`https://api.github.com/users/${githubUsername}/repos?sort=updated&per_page=100`)
       .then(response => response.json())
       .then(data => {
         if (Array.isArray(data)) {
+          // Remove slice so ALL projects are shown here
           setRepos(data);
         }
         setLoading(false);
@@ -87,7 +89,6 @@ const Projects = () => {
           </h1>
           <p style={{ color: 'var(--text-dim)', fontSize: '16px', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6' }}>
             This data is being automatically synced in real-time from my GitHub account.
-            
           </p>
         </motion.div>
 
@@ -104,13 +105,13 @@ const Projects = () => {
           gap: '30px', 
           perspective: '2000px' // CRUCIAL for 3D card tilt
         }}>
-          {!loading && repos.slice(0, 6).map((repo, index) => (
+          {!loading && repos.map((repo, index) => (
             <motion.div 
               key={repo.id} 
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              transition={{ duration: 0.5, delay: index * 0.05 }} // Faster cascading animation since list is bigger
               
               // --- Premium 3D Tilt & Glow Hover ---
               whileHover={{ 

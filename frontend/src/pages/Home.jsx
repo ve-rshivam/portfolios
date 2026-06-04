@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Sphere, MeshDistortMaterial } from '@react-three/drei';
 import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
@@ -26,8 +24,7 @@ const Home = () => {
   ]);
 
   // 🔥 NEW: MOBILE SCROLL & CINEMATIC COLOR STATES 🔥
-  const [sphereColor, setSphereColor] = useState('#00e5ff');
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
 
   // Fetch CMS Content
   useEffect(() => {
@@ -72,31 +69,17 @@ const Home = () => {
   const cursorGlowY = useTransform(mouseY, (y) => `${y - 200}px`);
 
   useEffect(() => {
-    // 🔥 NEW: Cinematic Color Randomizer (Refreshes on every load)
-    const cinematicColors = [
-      '#00e5ff', // Cyberpunk Cyan
-      '#ff0055', // Neon Pink
-      '#8a2be2', // Deep Sci-Fi Purple
-      '#ffaa00', // Cinematic Gold/Orange
-      '#00ff66', // Matrix Green
-      '#24537b', // Navy Blue
-      '#ff003c'  // Crimson Red
-    ];
-    setSphereColor(cinematicColors[Math.floor(Math.random() * cinematicColors.length)]);
 
-    // 🔥 NEW: Mobile Detection to fix Scrolling
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener('resize', handleResize);
-
-    // 1. Fetch GitHub Projects
-    fetch(`https://api.github.com/users/${githubUser}/repos?sort=updated`)
+    // 🔥 ADMIN CONTROLLED PROJECTS (Instead of raw GitHub fetch) 🔥
+    fetch(`http://localhost:5000/api/pinned-projects`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
+          // Sirf top 3 pinned projects Home page par dikhayenge
           setTopProjects(data.slice(0, 3)); 
         }
       })
-      .catch(err => console.error("Error fetching projects:", err));
+      .catch(err => console.error("Error fetching pinned projects:", err));
 
     // 2. Fetch Top Reviews (🔥 Pinned Reviews from Database)
     const fetchReviews = async () => {
@@ -132,7 +115,7 @@ const Home = () => {
     };
     fetchSkills();
 
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {};
   }, []);
 
   const handleResumeClick = () => {
@@ -192,35 +175,42 @@ const Home = () => {
             </div>
           </motion.div>
 
-         <div style={{ 
-            flex: 1, 
-            height: '50vh', 
-            minHeight: '400px', 
-            minWidth: '320px', 
-            zIndex: 10,
-            // 🔥 SCROLL FIX 1: Browser ko force karna ki vertical swipe ko scroll maane
-            touchAction: 'pan-y' 
-          }}>
-            {/* 🔥 SCROLL FIX 2: Canvas level par touch disable */}
-            <Canvas style={{ pointerEvents: isMobile ? 'none' : 'auto' }}>
-              <ambientLight intensity={1.5} />
-              <directionalLight position={[2, 3, 1]} intensity={2} />
-              
-              {/* 🔥 SCROLL FIX 3: enableRotate={!isMobile} lagaya hai. 
-                  Isse mobile par user interact nahi kar payega, par autoRotate hota rahega! */}
-              <OrbitControls 
-                enableZoom={false} 
-                enablePan={false} 
-                enableRotate={!isMobile} 
-                autoRotate 
-                autoRotateSpeed={2} 
+         <motion.div 
+            style={{ 
+              flex: 1, 
+              minWidth: '320px', 
+              zIndex: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <motion.div
+              animate={{ y: [0, -15, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              whileHover={{ scale: 1.05, rotateZ: 2 }}
+              style={{
+                width: 'clamp(280px, 25vw, 380px)',
+                height: 'clamp(280px, 25vw, 380px)',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: `4px solid ${themeColors.accent}`,
+                boxShadow: `0 0 40px var(--accent-glow), 0 20px 60px rgba(0,0,0,0.4)`,
+                transition: 'box-shadow 0.3s ease',
+              }}
+            >
+              <img 
+                src="/profile.png" 
+                alt="Shivam Kumar" 
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'cover',
+                  display: 'block',
+                }} 
               />
-              
-              <Sphere args={[1, 100, 200]} scale={2.2}>
-                <MeshDistortMaterial color={sphereColor} distort={0.4} speed={2.5} roughness={0.2} metalness={0.8} />
-              </Sphere>
-            </Canvas>
-          </div>
+            </motion.div>
+          </motion.div>
         </section>
 
         {/* ================= ABOUT ME & PHOTO SECTION ================= */}
@@ -293,11 +283,11 @@ const Home = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', perspective: '2000px' }}>
             {topProjects.length === 0 ? (
-              <p style={{ color: themeColors.textDim, textAlign: 'center', width: '100%' }}>Loading projects from GitHub...</p>
+              <p style={{ color: themeColors.textDim, textAlign: 'center', width: '100%' }}>No pinned projects yet. Pin them from Admin Panel.</p>
             ) : (
               topProjects.map((repo, i) => (
                 <motion.div 
-                  key={repo.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.4 }}
+                  key={repo._id || repo.repoId || i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.4 }}
                   whileHover={{ y: -10, scale: 1.03, rotateX: 10, rotateY: -10, borderColor: themeColors.accent, boxShadow: `0px 20px 60px var(--accent-glow)` }}
                   style={{ background: themeColors.cardBg, padding: '30px', borderRadius: '16px', border: `1px solid ${themeColors.border}`, textAlign: 'left', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'border-color 0.3s ease, box-shadow 0.3s ease', transformStyle: 'preserve-3d' }}
                 >

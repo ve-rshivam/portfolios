@@ -1,38 +1,18 @@
 import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 
-// 🔥 REUSABLE COMPONENT FOR THE 2-COLUMN LAYOUT 🔥
-const ResumeSection = ({ title, children, isLast }) => (
-  <div style={{ 
-    display: 'grid', 
-    gridTemplateColumns: '180px 1fr', 
-    paddingBottom: '20px', 
-    marginBottom: '20px',
-    borderBottom: isLast ? 'none' : '1px solid #b0c4de' // Thin blue line between sections
-  }}>
-    <h3 style={{ 
-      color: '#24537b', // Navy Blue from your reference image
-      textTransform: 'uppercase', 
-      fontSize: '13px', 
-      letterSpacing: '1px', 
-      margin: 0, 
-      fontWeight: 'bold' 
-    }}>
-      {title}
-    </h3>
-    <div style={{ paddingLeft: '10px' }}>
-      {children}
-    </div>
-  </div>
-);
+// ============================================================
+// 🎓 LATEX-STYLE ACADEMIC RESUME — Matching Reference Image
+// ============================================================
 
 const Resume = () => {
-  const [projects, setProjects] = useState([]);
+  const [pinnedProjects, setPinnedProjects] = useState([]);
   const [skills, setSkills] = useState([]);
   const [experiences, setExperiences] = useState([]);
   const [education, setEducation] = useState([]);
+  const [homeContent, setHomeContent] = useState({ heroTitle: 'Shivam Kumar' });
   const [loading, setLoading] = useState(true);
-  
+
   const githubUser = "ve-rshivam";
 
   // --- Mouse Proximity Glow Logic (Web only) ---
@@ -54,15 +34,15 @@ const Resume = () => {
   const cursorGlowY = useTransform(mouseY, (y) => `${y - 200}px`);
 
   useEffect(() => {
-    // 1. Fetch live projects from GitHub
-    fetch(`https://api.github.com/users/${githubUser}/repos?sort=updated`)
+    // 1. Fetch Pinned Projects (same as Home page — NOT all GitHub repos)
+    fetch(`http://localhost:5000/api/pinned-projects`)
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) setProjects(data.slice(0, 4));
+        if (Array.isArray(data)) setPinnedProjects(data);
       })
-      .catch(err => console.error("GitHub Fetch Error:", err));
+      .catch(err => console.error("Pinned Projects Fetch Error:", err));
 
-    // 2. Fetch Skills & Experience from your backend
+    // 2. Fetch Skills, Experience, Education from backend
     fetch("http://localhost:5000/api/resume-data")
       .then(res => res.json())
       .then(data => {
@@ -75,63 +55,227 @@ const Resume = () => {
         console.error("Backend Fetch Error:", err);
         setLoading(false);
       });
+
+    // 3. Fetch CMS content for name
+    fetch("http://localhost:5000/api/content")
+      .then(res => res.json())
+      .then(data => {
+        if (data?.homeData?.heroTitle) {
+          // Extract name from "Hi, I am Shivam Singh" -> "Shivam Singh"
+          const title = data.homeData.heroTitle;
+          const nameMatch = title.match(/I\s*(?:am|'m)\s+(.+)/i);
+          setHomeContent({ heroTitle: nameMatch ? nameMatch[1].trim() : title });
+        }
+      })
+      .catch(err => console.log("Content fetch error", err));
   }, []);
 
   const handleDownloadPDF = () => {
     window.print();
   };
 
+  // ============================================================
+  // 🎨 GROUP SKILLS BY CATEGORY (for LaTeX-style "Technical Skills")
+  // ============================================================
+  const groupSkillsByCategory = (skillsList) => {
+    const groups = {};
+    skillsList.forEach(skill => {
+      const cat = skill.category || 'Other';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(skill.name);
+    });
+    return groups;
+  };
+
+  const skillGroups = groupSkillsByCategory(skills);
+
+  // ============================================================
+  // 📐 COMMON STYLES (LaTeX Academic Resume Style)
+  // ============================================================
+  const s = {
+    // Section title with bottom border (like LaTeX \section)
+    sectionTitle: {
+      fontSize: '11.5pt',
+      fontWeight: 'bold',
+      textTransform: 'uppercase',
+      letterSpacing: '1.5px',
+      color: '#000',
+      borderBottom: '1.5px solid #000',
+      paddingBottom: '3px',
+      marginBottom: '8px',
+      marginTop: '14px',
+      fontFamily: "'Times New Roman', 'Georgia', serif",
+    },
+    // Entry row: title left, date right
+    entryRow: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      flexWrap: 'wrap',
+      gap: '5px',
+    },
+    entryTitle: {
+      fontSize: '10.5pt',
+      fontWeight: 'bold',
+      color: '#000',
+      fontFamily: "'Times New Roman', 'Georgia', serif",
+    },
+    entrySubtitle: {
+      fontSize: '10pt',
+      fontStyle: 'italic',
+      color: '#333',
+      fontFamily: "'Times New Roman', 'Georgia', serif",
+    },
+    entryDate: {
+      fontSize: '10pt',
+      color: '#333',
+      fontStyle: 'italic',
+      textAlign: 'right',
+      fontFamily: "'Times New Roman', 'Georgia', serif",
+      whiteSpace: 'nowrap',
+    },
+    entryLocation: {
+      fontSize: '10pt',
+      color: '#333',
+      textAlign: 'right',
+      fontFamily: "'Times New Roman', 'Georgia', serif",
+    },
+    bulletList: {
+      margin: '3px 0 8px 0',
+      paddingLeft: '18px',
+      listStyleType: 'disc',
+      fontSize: '10pt',
+      lineHeight: '1.45',
+      color: '#222',
+      fontFamily: "'Times New Roman', 'Georgia', serif",
+    },
+    bulletItem: {
+      marginBottom: '1px',
+    },
+    techTag: {
+      fontSize: '10pt',
+      fontStyle: 'italic',
+      color: '#444',
+      fontFamily: "'Times New Roman', 'Georgia', serif",
+    },
+    skillLine: {
+      fontSize: '10pt',
+      color: '#222',
+      lineHeight: '1.55',
+      marginBottom: '2px',
+      fontFamily: "'Times New Roman', 'Georgia', serif",
+    },
+  };
+
   return (
-    <div style={{ 
+    <div style={{
       position: 'relative',
-      padding: '120px 5vw 80px 5vw', 
-      display: 'flex', 
-      justifyContent: 'center', 
-      background: 'var(--bg-main)', 
+      padding: '120px 5vw 80px 5vw',
+      display: 'flex',
+      justifyContent: 'center',
+      background: 'var(--bg-main)',
       minHeight: '100vh',
       overflow: 'hidden',
-      fontFamily: 'Arial, Helvetica, sans-serif', // Standard Professional Font
+      fontFamily: "'Times New Roman', 'Georgia', serif",
       transition: 'background 0.3s ease'
     }}>
-      
-      {/* 🔥 PROFESSIONAL PRINT CSS STYLES - FIXED 🔥 */}
+
+      {/* 🔥 PRODUCTION-GRADE PRINT CSS 🔥 */}
       <style>{`
         @media print {
-          /* 1. Hide browser default header and footer */
           @page {
             size: A4 portrait;
-            margin: 0; /* Remove browser default margins */
+            margin: 0;
           }
-          
-          body, html {
+
+          * {
+            transition: none !important;
+            animation: none !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          html, body {
             margin: 0 !important;
             padding: 0 !important;
-          }
-
-          /* 2. Hide everything else */
-          body * {
-            visibility: hidden;
-          }
-          
-          #printable-resume, #printable-resume * {
-            visibility: visible;
-          }
-          
-          #printable-resume {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 40px !important; /* Resume ka apna padding */
-            box-shadow: none !important;
-            border: none !important;
             background: white !important;
             color: black !important;
+            overflow: visible !important;
+            height: auto !important;
+            min-height: auto !important;
           }
 
-          .no-print, .no-print * {
+          body > *:not(#root) {
             display: none !important;
+          }
+
+          #root,
+          #root div:not(#printable-resume):not(#printable-resume *) {
+            background: transparent !important;
+            background-color: white !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            overflow: visible !important;
+            min-height: auto !important;
+            height: auto !important;
+            max-height: none !important;
+            display: block !important;
+            position: static !important;
+            transform: none !important;
+            opacity: 1 !important;
+          }
+
+          nav, footer, header,
+          .no-print,
+          [style*="position: fixed"],
+          [style*="position:fixed"] {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
+          }
+
+          #printable-resume {
+            display: block !important;
+            position: relative !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 12mm 15mm !important;
+            border: none !important;
+            border-radius: 0 !important;
+            background: white !important;
+            color: #000 !important;
+            overflow: visible !important;
+            transform: none !important;
+            opacity: 1 !important;
+            font-family: 'Times New Roman', 'Georgia', serif !important;
+          }
+
+          #printable-resume * {
+            position: static !important;
+            background: transparent !important;
+            overflow: visible !important;
+            transform: none !important;
+            opacity: 1 !important;
+            color: #000 !important;
+          }
+
+          #printable-resume h1 {
+            color: #000 !important;
+          }
+
+          #printable-resume a {
+            text-decoration: none !important;
+            color: #000 !important;
+          }
+
+          /* Force proper section border visibility */
+          #printable-resume .resume-section-title {
+            border-bottom: 1.5px solid #000 !important;
           }
         }
       `}</style>
@@ -155,149 +299,230 @@ const Resume = () => {
       }} />
 
       {/* ========================================================= */}
-      {/* 📄 RESUME A4 CONTAINER (Looks like paper on web & print) */}
+      {/* 📄 RESUME A4 CONTAINER                                    */}
       {/* ========================================================= */}
-      <motion.div 
-        id="printable-resume" 
+      <motion.div
+        id="printable-resume"
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        style={{ 
+        style={{
           position: 'relative',
           zIndex: 5,
-          width: '100%', 
-          maxWidth: '850px', // A4 aspect ratio approximation for web
-          background: '#ffffff', // Pure white like real paper
-          color: '#333333', // Dark grey text for readability
-          padding: '40px 50px', 
-          boxShadow: '0px 10px 40px rgba(0,0,0,0.3)', // Shadow for web presentation
-          borderRadius: '4px' // Very slight curve, mostly square like paper
+          width: '100%',
+          maxWidth: '800px',
+          background: '#ffffff',
+          color: '#000000',
+          padding: '35px 45px',
+          boxShadow: '0px 10px 40px rgba(0,0,0,0.3)',
+          borderRadius: '2px',
+          fontFamily: "'Times New Roman', 'Georgia', serif",
+          lineHeight: '1.3',
         }}
       >
-        
+
         {/* Print Action Button (Web Only) */}
-        <div className="no-print" style={{ textAlign: 'right', marginBottom: '20px' }}>
-          <motion.button 
+        <div className="no-print" style={{ textAlign: 'right', marginBottom: '15px' }}>
+          <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleDownloadPDF}
-            style={{ 
-              padding: '10px 20px', 
-              background: '#24537b', 
-              color: '#ffffff', 
-              border: 'none', 
-              borderRadius: '6px', 
-              fontWeight: 'bold', 
+            style={{
+              padding: '10px 22px',
+              background: '#1a1a2e',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              fontWeight: 'bold',
               fontSize: '14px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              fontFamily: 'Inter, Arial, sans-serif',
             }}
           >
-            🖨️ Download PDF Format
+            🖨️ Download PDF
           </motion.button>
         </div>
 
-        {/* 1. HEADER SECTION (Matches your reference image) */}
-        <div style={{ borderBottom: '2px solid #24537b', paddingBottom: '15px', marginBottom: '25px' }}>
-          <h1 style={{ 
-            color: '#24537b', 
-            fontSize: '36px', 
-            margin: '0 0 8px 0', 
-            textTransform: 'uppercase', 
-            letterSpacing: '1px',
-            fontWeight: '900'
+        {/* ============================== */}
+        {/* 1. HEADER — Name + Contact     */}
+        {/* ============================== */}
+        <div style={{ textAlign: 'center', marginBottom: '5px' }}>
+          <h1 style={{
+            fontSize: '22pt',
+            fontWeight: 'bold',
+            margin: '0 0 6px 0',
+            letterSpacing: '3px',
+            textTransform: 'uppercase',
+            color: '#000',
+            fontFamily: "'Times New Roman', 'Georgia', serif",
+            fontVariant: 'small-caps',
           }}>
-            Shivam Kumar
+            {homeContent.heroTitle}
           </h1>
-          <p style={{ margin: 0, fontSize: '13px', color: '#444' }}>
-            getus.shivam@gmail.com | +91 81028 69061 | 
-            <a href={`https://github.com/${githubUser}`} style={{color: '#444', textDecoration: 'none', marginLeft: '5px'}}>github.com/{githubUser}</a> | 
-            <a href="https://ve-rshivam.github.io/Portfolio" style={{color: '#444', textDecoration: 'none', marginLeft: '5px'}}>Portfolio</a>
-          </p>
-        </div>
-
-        {/* 2. SUMMARY SECTION */}
-        <ResumeSection title="Summary">
-          <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.6', color: '#333' }}>
-            Detail-oriented and highly motivated Full-Stack Developer specializing in the MERN stack. 
-            Passionate about building scalable web applications, interactive 3D interfaces, and writing clean, efficient code. 
-            Proven ability to design robust backend systems and seamless frontend user experiences.
-          </p>
-        </ResumeSection>
-        {/* Education Section */}
-        <div style={{ marginBottom: '35px' }}>
-          <h2 style={{ fontSize: '22px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', marginBottom: '20px', fontWeight: 'bold' }}>
-            Education
-          </h2>
-          {education.length === 0 && !loading && <p style={{ fontSize: '14px', color: 'var(--text-dim)' }}>Education will be added from Admin panel...</p>}
-          {education.map((edu) => (
-            <div key={edu._id} style={{ marginBottom: '15px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', alignItems: 'center', marginBottom: '5px' }}>
-                <strong style={{ fontSize: '14px', color: '#111', textTransform: 'capitalize' }}>
-                  {edu.degree}
-                </strong>
-                <span style={{ fontSize: '13px', color: '#333', fontWeight: 'bold' }}>{edu.duration}</span>
-              </div>
-              <ul style={{ margin: '5px 0 0 0', paddingLeft: '18px', color: '#333', fontSize: '13px', lineHeight: '1.5' }}>
-                <li><span className="dynamic-text" style={{ fontWeight: 'bold' }}>{edu.institution}</span></li>
-                {edu.score && <li>Score: {edu.score}</li>}
-                {edu.description && <li>{edu.description}</li>}
-              </ul>
-            </div>
-          ))}
-        </div>
-
-        {/* 3. WORK EXPERIENCE SECTION */}
-        <ResumeSection title="Work Experience">
-          {experiences.length === 0 && !loading && <p style={{ fontSize: '13px' }}>Loading experience...</p>}
-          {experiences.map((exp) => (
-            <div key={exp._id} style={{ marginBottom: '15px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <strong style={{ fontSize: '14px', color: '#111' }}>{exp.role}, {exp.company}</strong>
-                <span style={{ fontSize: '13px', color: '#333', fontWeight: 'bold' }}>{exp.duration}</span>
-              </div>
-              <ul style={{ margin: '5px 0 0 0', paddingLeft: '18px', color: '#333', fontSize: '13px', lineHeight: '1.5' }}>
-                <li>{exp.description}</li>
-              </ul>
-            </div>
-          ))}
-        </ResumeSection>
-
-        {/* 4. RECENT PROJECTS SECTION */}
-        <ResumeSection title="Key Projects">
-          {projects.length === 0 ? <p style={{ fontSize: '13px' }}>Loading GitHub projects...</p> : projects.map((repo) => (
-            <div key={repo.id} style={{ marginBottom: '15px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <strong style={{ fontSize: '14px', color: '#111', textTransform: 'capitalize' }}>
-                  {repo.name.replace(/-/g, ' ')}
-                </strong>
-                <a href={repo.html_url} className="no-print" target="_blank" rel="noreferrer" style={{ fontSize: '12px', color: '#24537b', textDecoration: 'none', fontWeight: 'bold' }}>
-                  View Code ↗
-                </a>
-              </div>
-              <ul style={{ margin: '5px 0 0 0', paddingLeft: '18px', color: '#333', fontSize: '13px', lineHeight: '1.5' }}>
-                <li>{repo.description || "Developed robust web application integrating modern frontend and backend technologies."}</li>
-              </ul>
-            </div>
-          ))}
-        </ResumeSection>
-
-        {/* 5. KEY SKILLS SECTION (2 Column Bullet List) */}
-        <ResumeSection title="Key Skills" isLast={true}>
-          {skills.length === 0 && !loading && <span style={{ fontSize: '13px' }}>Loading skills...</span>}
-          <ul style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '1fr 1fr', 
-            gap: '8px', 
-            margin: 0, 
-            paddingLeft: '18px', 
-            color: '#333', 
-            fontSize: '13px' 
+          <p style={{
+            margin: 0,
+            fontSize: '9.5pt',
+            color: '#333',
+            fontFamily: "'Times New Roman', 'Georgia', serif",
+            lineHeight: '1.5',
           }}>
-            {skills.map(skill => (
-              <li key={skill._id}>{skill.name}</li>
+            getus.shivam@gmail.com{' | '}
+            +91 81028 69061{' | '}
+            <a href={`https://github.com/${githubUser}`} style={{ color: '#333', textDecoration: 'none' }}>
+              github.com/{githubUser}
+            </a>{' | '}
+            <a href="https://linkedin.com/in/ve-rshivam" style={{ color: '#333', textDecoration: 'none' }}>
+              LinkedIn
+            </a>
+          </p>
+        </div>
+
+        {/* ============================== */}
+        {/* 2. EDUCATION                   */}
+        {/* ============================== */}
+        {education.length > 0 && (
+          <div>
+            <div className="resume-section-title" style={s.sectionTitle}>Education</div>
+            {education.map((edu) => (
+              <div key={edu._id} style={{ marginBottom: '6px' }}>
+                <div style={s.entryRow}>
+                  <span style={s.entryTitle}>{edu.institution}</span>
+                  <span style={s.entryLocation}>{edu.location || ''}</span>
+                </div>
+                <div style={s.entryRow}>
+                  <span style={s.entrySubtitle}>
+                    {edu.degree}{edu.score ? ` (${edu.score})` : ''}
+                  </span>
+                  <span style={s.entryDate}>{edu.duration}</span>
+                </div>
+                {edu.description && (
+                  <ul style={s.bulletList}>
+                    <li style={s.bulletItem}>{edu.description}</li>
+                  </ul>
+                )}
+              </div>
             ))}
-          </ul>
-        </ResumeSection>
+          </div>
+        )}
+
+        {/* ============================== */}
+        {/* 3. EXPERIENCE                  */}
+        {/* ============================== */}
+        {experiences.length > 0 && (
+          <div>
+            <div className="resume-section-title" style={s.sectionTitle}>Experience</div>
+            {experiences.map((exp) => {
+              // Split description by newline or bullet character for multi-point display
+              const descLines = exp.description
+                ? exp.description.split(/\n|•|●/).map(l => l.trim()).filter(Boolean)
+                : [];
+              return (
+                <div key={exp._id} style={{ marginBottom: '6px' }}>
+                  <div style={s.entryRow}>
+                    <span style={s.entryTitle}>{exp.role}{exp.company ? `, ${exp.company}` : ''}</span>
+                    <span style={s.entryDate}>{exp.duration}</span>
+                  </div>
+                  {descLines.length > 0 && (
+                    <ul style={s.bulletList}>
+                      {descLines.map((line, idx) => (
+                        <li key={idx} style={s.bulletItem}>{line}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ============================== */}
+        {/* 4. PROJECTS (Pinned/Home only) */}
+        {/* ============================== */}
+        {pinnedProjects.length > 0 && (
+          <div>
+            <div className="resume-section-title" style={s.sectionTitle}>Projects</div>
+            {pinnedProjects.map((repo) => {
+              // Split description into bullet points
+              const descLines = repo.description
+                ? repo.description.split(/\n|•|●/).map(l => l.trim()).filter(Boolean)
+                : ['Developed and deployed a modern web application.'];
+              return (
+                <div key={repo._id || repo.repoId} style={{ marginBottom: '6px' }}>
+                  <div style={s.entryRow}>
+                    <span>
+                      <span style={s.entryTitle}>
+                        {repo.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                      </span>
+                      {repo.techStack && (
+                        <span style={s.techTag}>{' | '}{repo.techStack}</span>
+                      )}
+                    </span>
+                    <span style={s.entryDate}>{repo.dateRange || ''}</span>
+                  </div>
+                  <ul style={s.bulletList}>
+                    {descLines.map((line, idx) => (
+                      <li key={idx} style={s.bulletItem}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ============================== */}
+        {/* 5. TECHNICAL SKILLS            */}
+        {/* ============================== */}
+        {skills.length > 0 && (
+          <div>
+            <div className="resume-section-title" style={s.sectionTitle}>Technical Skills</div>
+            <div style={{ marginTop: '4px' }}>
+              {Object.keys(skillGroups).length > 1 ? (
+                // If skills have categories, show grouped format
+                Object.entries(skillGroups).map(([category, skillNames]) => (
+                  <div key={category} style={s.skillLine}>
+                    <strong>{category}</strong>: {skillNames.join(', ')}
+                  </div>
+                ))
+              ) : (
+                // Single-category fallback: just list all skills in a comma-separated line
+                <div style={s.skillLine}>
+                  <strong>Skills</strong>: {skills.map(sk => sk.name).join(', ')}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ============================== */}
+        {/* LOADING STATE                  */}
+        {/* ============================== */}
+        {loading && (
+          <div style={{
+            textAlign: 'center',
+            padding: '40px',
+            color: '#888',
+            fontSize: '14px',
+            fontFamily: 'Inter, Arial, sans-serif',
+          }}>
+            Loading resume data...
+          </div>
+        )}
+
+        {/* Empty state when everything loaded but nothing exists */}
+        {!loading && education.length === 0 && experiences.length === 0 &&
+          pinnedProjects.length === 0 && skills.length === 0 && (
+            <div style={{
+              textAlign: 'center',
+              padding: '60px 20px',
+              color: '#999',
+              fontSize: '15px',
+              fontFamily: 'Inter, Arial, sans-serif',
+            }}>
+              <p style={{ fontSize: '40px', margin: '0 0 15px 0' }}>📄</p>
+              <p style={{ margin: 0 }}>No resume data found. Add sections from the Admin Panel.</p>
+            </div>
+          )}
 
       </motion.div>
     </div>

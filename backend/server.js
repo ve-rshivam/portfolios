@@ -11,8 +11,22 @@ import rateLimit from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import Razorpay from 'razorpay'; 
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '.env') });
+
+// ==========================================
+// 🛡️ 0. FAANG-LEVEL ENVIRONMENT CHECK 🛡️
+// ==========================================
+const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET'];
+const missingVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+if (missingVars.length > 0) {
+  console.error(`❌ CRITICAL STARTUP ERROR: Missing required environment variables: ${missingVars.join(', ')}`);
+  process.exit(1); 
+}
 
 const app = express();
 
@@ -133,6 +147,7 @@ const messageSchema = new mongoose.Schema({
   type: { type: String, default: 'contact' },
   transaction_id: { type: String, trim: true },
   attachment: String,
+  projectId: { type: String, trim: true }, // Added for remaining payments tracking
   date: { type: Date, default: Date.now }
 });
 const Message = mongoose.model('Message', messageSchema);
@@ -142,13 +157,13 @@ const Skill = mongoose.model('Skill', skillSchema);
 
 const experienceSchema = new mongoose.Schema({ role: String, company: String, duration: String, description: String });
 const Experience = mongoose.model('Experience', experienceSchema);
-const educationSchema = new mongoose.Schema({ degree: String, institution: String, duration: String, score: String, description: String });
+const educationSchema = new mongoose.Schema({ degree: String, institution: String, duration: String, score: String, description: String, location: { type: String, default: '' } });
 const Education = mongoose.model('Education', educationSchema);
 
 const contentSchema = new mongoose.Schema({
   homeData: { heroTitle: { type: String, default: "Hi, I am Shivam Singh" }, heroSubtitle: { type: String, default: "Full-Stack Web Developer" } },
   aboutData: { description: { type: String, default: "I am a passionate developer..." } },
-  contactData: { email: { type: String, default: "" }, phone: { type: String, default: "" }, address: { type: String, default: "" } },
+  contactData: [{ title: String, url: String, icon: String }],
   policyData: { privacy: { type: String, default: "" }, terms: { type: String, default: "" }, refund: { type: String, default: "" } }
 });
 const Content = mongoose.model('Content', contentSchema);
@@ -194,9 +209,29 @@ const projectSchema = new mongoose.Schema({
   deliveryDate: String,
   notes: String,
   isTemporaryKey: { type: Boolean, default: false }, 
+  
+  // 🔥 NEW FIELDS FOR SMART PAYMENT & MULTI-PROJECT
+  totalCost: { type: Number, default: 0 },
+  amountPaid: { type: Number, default: 0 },
+  balanceDue: { type: Number, default: 0 },
+  lastPasswordReset: { type: Date }, 
+
   lastUpdated: { type: Date, default: Date.now }
 });
 const ClientProject = mongoose.model('ClientProject', projectSchema);
+
+// 🔥 NEW SCHEMA: FOR ADMIN SELECTED GITHUB PROJECTS 🔥
+const pinnedProjectSchema = new mongoose.Schema({
+  repoId: { type: String, required: true, unique: true }, // GitHub Repo ID
+  name: String,
+  description: String,
+  html_url: String,
+  techStack: { type: String, default: '' },   // e.g. "HTML, CSS, JavaScript, Bootstrap"
+  dateRange: { type: String, default: '' },    // e.g. "May 2025 – July 2025"
+  pinnedAt: { type: Date, default: Date.now }
+});
+const PinnedProject = mongoose.model('PinnedProject', pinnedProjectSchema);
+
 
 // --- ADMIN INITIALIZATION (PRO LEVEL: SECRETS FROM .ENV ONLY) ---
 const createDefaultAdmin = async () => {
@@ -383,13 +418,19 @@ app.post('/api/admin/reset-password', async (req, res) => {
 // ==========================================
 app.post('/api/messages', async (req, res) => {
   try {
-    const { name, email, phone, message, type, transaction_id, attachment } = req.body;
+    const { name, email, phone, message, type, transaction_id, attachment, projectId, isRemainingPayment, amountPaid } = req.body;
     
     if(type === 'payment' && (!name || !email || !phone || !transaction_id)) {
       return res.status(400).json({success: false, message: "Incomplete payment details provided."});
     }
 
-    const newMessage = new Message({ name, email, phone, message, type, transaction_id, attachment });
+    // Append remaining payment tag if applicable for admin info
+    let finalMessage = message;
+    if (isRemainingPayment) {
+        finalMessage = `[REMAINING BALANCE PAYMENT] Claimed Amount: $${amountPaid}\n\n${message}`;
+    }
+
+    const newMessage = new Message({ name, email, phone, message: finalMessage, type, transaction_id, attachment, projectId });
     await newMessage.save();
 
     // 🔥 DYNAMIC ROLE-BASED EMAIL ALERTS (FIXED PRIVACY & SENDER) 🔥
@@ -399,10 +440,8 @@ app.post('/api/messages', async (req, res) => {
           $or: [{ role: 'superadmin' }, { permissions: 'payments' }]
         });
         
-        // Loop runs to send individual emails so recipients can't see each other's IDs
         for (const adminUser of authorizedAdmins) {
           const mailOptions = {
-            // FIX 2: Sender is always Team Support
             from: `"System Alert (Payments)" <${process.env.TEAM_EMAIL_USER || process.env.EMAIL_USER}>`, 
             to: adminUser.identifier, 
             subject: `💰 New Payment Received from ${name}`,
@@ -411,10 +450,10 @@ app.post('/api/messages', async (req, res) => {
               <p><strong>Client Name:</strong> ${name}</p>
               <p><strong>Email:</strong> ${email}</p>
               <p><strong>Transaction ID:</strong> ${transaction_id}</p>
+              ${isRemainingPayment ? `<p style="color:red; font-weight:bold;">This is a Remaining Balance Clearance Request.</p>` : ''}
               <p>Please check your Admin Dashboard to verify the payment and generate an Access Key for the client.</p>
             `
           };
-          // Use teamTransporter exclusively for system alerts
           await teamTransporter.sendMail(mailOptions).catch(err => console.log(`Payment Mail Failed for ${adminUser.identifier}:`, err.message));
         }
       } catch (mailError) { console.log("Mail setup error:", mailError); }
@@ -426,10 +465,8 @@ app.post('/api/messages', async (req, res) => {
           $or: [{ role: 'superadmin' }, { permissions: 'messages' }]
         });
 
-        // Loop runs to send individual emails so recipients can't see each other's IDs
         for (const adminUser of authorizedAdmins) {
           const contactMailOptions = {
-            // FIX 2: Sender is always Team Support
             from: `"Website Contact Form" <${process.env.TEAM_EMAIL_USER || process.env.EMAIL_USER}>`, 
             to: adminUser.identifier, 
             replyTo: email, 
@@ -450,7 +487,6 @@ app.post('/api/messages', async (req, res) => {
               </div>
             `
           };
-          // Use teamTransporter exclusively for system alerts
           await teamTransporter.sendMail(contactMailOptions).catch(err => console.log(`Contact Mail Failed for ${adminUser.identifier}:`, err.message));
         }
       } catch (mailError) { console.log("Contact Mail setup error:", mailError); }
@@ -465,7 +501,8 @@ app.post('/api/messages', async (req, res) => {
 // 🔥 RAZORPAY ORDER CREATION 🔥
 app.post('/api/payment/razorpay-order', async (req, res) => {
   try {
-    const { serviceId, amount } = req.body; 
+    // Zero-Trust: Backend validates the prices based on DB, frontend amounts are hints
+    const { serviceId, amount, totalAmount, projectId, isRemainingPayment } = req.body; 
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       return res.status(500).json({ success: false, message: "Razorpay keys missing in .env" });
@@ -473,10 +510,28 @@ app.post('/api/payment/razorpay-order', async (req, res) => {
 
     let numericPrice = 100; 
     
-    if (serviceId && mongoose.Types.ObjectId.isValid(serviceId)) {
+    // SMART PAYMENT & MULTI-PROJECT ZERO-TRUST VALIDATION
+    if (isRemainingPayment && projectId) {
+        // If it's a remaining payment, strictly fetch balance from DB
+        const project = await ClientProject.findById(projectId);
+        if (!project) return res.status(404).json({ success: false, message: "Project not found" });
+        
+        numericPrice = project.balanceDue || 100; // Force DB balance
+        if (numericPrice <= 0) {
+            return res.status(400).json({ success: false, message: "Project is already fully paid." });
+        }
+    }
+    else if (serviceId && mongoose.Types.ObjectId.isValid(serviceId)) {
+        // If it's a new project, check minimum 40% rule
         const service = await Service.findById(serviceId);
         if (service && service.price) {
-            numericPrice = parseInt(service.price.replace(/\D/g, "")) || 100; 
+            const dbPrice = parseInt(service.price.replace(/\D/g, "")) || 100; 
+            
+            if (amount && amount >= (dbPrice * 0.40)) {
+                numericPrice = parseInt(amount, 10); // Safe partial amount
+            } else {
+                numericPrice = dbPrice; // Fallback to full DB price
+            }
         }
     } else if (amount) {
         numericPrice = parseInt(amount, 10);
@@ -507,36 +562,119 @@ app.post('/api/payment/razorpay-order', async (req, res) => {
 // 🔥 AUTOMATED GATEWAY SUCCESS API 🔥
 app.post('/api/payment/gateway-success', async (req, res) => {
   try {
-    const { name, email, serviceName, transactionId } = req.body;
+    const { name, email, serviceName, transactionId, gateway, razorpay_order_id, razorpay_payment_id, razorpay_signature, amountPaid, totalAmount, projectId, isRemainingPayment } = req.body;
     
-    const rawAccessKey = crypto.randomBytes(6).toString('hex').toUpperCase();
-    const salt = await bcrypt.genSalt(14);
-    const hashedKey = await bcrypt.hash(rawAccessKey, salt);
-
-    const newProject = new ClientProject({
-      clientEmail: email,
-      clientName: name,
-      projectTitle: serviceName || "Automated Purchase",
-      hashedAccessKey: hashedKey,
-      isPaymentVerified: true,
-      paymentStatus: 'Fully Paid (Gateway)',
-      status: 'Development Started',
-      progress: 10
-    });
-    await newProject.save();
-
-    try {
-      await clientTransporter.sendMail({
-        from: `"Shivam Web Studio" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
-        to: email,
-        subject: "🎉 Payment Verified - Portal Login Details",
-        html: `<h3>Hi ${name},</h3><p>Your payment via gateway is verified.</p><p>Login URL: <a href="http://localhost:5173/portal">Client Portal</a></p><p>Email: <b>${email}</b></p><p>Access Key: <b style="color:#00e5ff; font-size:20px;">${rawAccessKey}</b></p>`
-      });
-    } catch(mailErr) {
-      console.log("Email sending failed, but project auto-created.");
+    // 🛡️ ZERO-TRUST: Verify Gateway Signature 
+    if (gateway === 'razorpay') {
+      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+         return res.status(400).json({ success: false, message: "Missing Razorpay verification parameters." });
+      }
+      const generated_signature = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+                                        .update(razorpay_order_id + "|" + razorpay_payment_id)
+                                        .digest('hex');
+      
+      if (generated_signature !== razorpay_signature) {
+         console.warn(`🚨 SECURITY ALERT: Invalid Razorpay signature from ${email}`);
+         return res.status(400).json({ success: false, message: "Invalid payment signature. Verification failed." });
+      }
+    } else if (gateway === 'paypal') {
+      console.warn(`ℹ️ Notice: PayPal transaction ${transactionId} received. Ensure webhook/API verification is implemented.`);
+    } else {
+      return res.status(400).json({ success: false, message: "Unknown or missing payment gateway provider." });
     }
 
-    res.json({ success: true, accessKey: rawAccessKey, email: email });
+    // ==========================================
+    // MULTI-PROJECT & REMAINING PAYMENT LOGIC
+    // ==========================================
+    if (isRemainingPayment && projectId) {
+        // SCENARIO 1: Client is paying remaining balance for an existing project
+        const project = await ClientProject.findById(projectId);
+        if (!project) return res.status(404).json({ success: false, message: "Project not found" });
+
+        project.amountPaid += Number(amountPaid);
+        project.balanceDue = project.totalCost - project.amountPaid;
+
+        if (project.balanceDue <= 0) {
+            project.balanceDue = 0;
+            project.paymentStatus = 'Fully Paid';
+        } else {
+            const percentage = Math.round((project.amountPaid / project.totalCost) * 100);
+            project.paymentStatus = `Partial (${percentage}%)`;
+        }
+        
+        project.lastUpdated = Date.now();
+        await project.save();
+
+        try {
+          await clientTransporter.sendMail({
+            from: `"Shivam Web Studio" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
+            to: email,
+            subject: "🎉 Remaining Balance Received",
+            html: `<h3>Hi ${name},</h3><p>Your remaining payment of $${amountPaid} for <strong>${project.projectTitle}</strong> has been received successfully.</p><p>Project Payment Status: <b style="color:#00f5a0;">${project.paymentStatus}</b></p><p>Login to Portal: <a href="http://localhost:5173/portal">Client Portal</a></p>`
+          });
+        } catch(e) {}
+
+        return res.json({ success: true, message: "Remaining balance updated" });
+
+    } else {
+        // SCENARIO 2: Creating a completely new project
+        
+        // Smart Key Sync: If user has other projects, copy their password so they don't have to manage multiple keys.
+        let hashedKey = "";
+        let rawAccessKey = "";
+        
+        const existingProject = await ClientProject.findOne({ clientEmail: email });
+        if (existingProject) {
+            hashedKey = existingProject.hashedAccessKey;
+            rawAccessKey = "Same as your existing Portal Access Key"; 
+        } else {
+            rawAccessKey = crypto.randomBytes(6).toString('hex').toUpperCase();
+            const salt = await bcrypt.genSalt(14);
+            hashedKey = await bcrypt.hash(rawAccessKey, salt);
+        }
+
+        const safeAmountPaid = Number(amountPaid) || 100;
+        const safeTotalAmount = Number(totalAmount) || 100;
+        const safeBalanceDue = safeTotalAmount - safeAmountPaid;
+
+        let dynamicPaymentStatus = 'Paid';
+        if (safeAmountPaid && safeTotalAmount) {
+            const percentage = Math.round((safeAmountPaid / safeTotalAmount) * 100);
+            dynamicPaymentStatus = percentage >= 100 ? 'Fully Paid' : `Partial (${percentage}%)`;
+        }
+
+        const newProject = new ClientProject({
+          clientEmail: email,
+          clientName: name,
+          projectTitle: serviceName || "Automated Purchase",
+          hashedAccessKey: hashedKey,
+          isPaymentVerified: true,
+          paymentStatus: dynamicPaymentStatus,
+          status: 'Development Started',
+          progress: 10,
+          totalCost: safeTotalAmount,
+          amountPaid: safeAmountPaid,
+          balanceDue: safeBalanceDue > 0 ? safeBalanceDue : 0
+        });
+        await newProject.save();
+
+        try {
+          await clientTransporter.sendMail({
+            from: `"Shivam Web Studio" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
+            to: email,
+            subject: "🎉 Payment Verified - Portal Login Details",
+            html: `<h3>Hi ${name},</h3>
+                   <p>Your payment via gateway is verified.</p>
+                   <p>Login URL: <a href="http://localhost:5173/portal">Client Portal</a></p>
+                   <p>Email: <b>${email}</b></p>
+                   <p>Access Key: <b style="color:#00e5ff; font-size:20px;">${rawAccessKey}</b></p>`
+          });
+        } catch(mailErr) {
+          console.log("Email sending failed, but project auto-created.");
+        }
+
+        return res.json({ success: true, accessKey: rawAccessKey, email: email });
+    }
   } catch(err) {
     res.status(500).json({ success: false, message: "Automation failed." });
   }
@@ -545,7 +683,9 @@ app.post('/api/payment/gateway-success', async (req, res) => {
 
 app.post('/api/reviews', async (req, res) => {
   try {
-    const newReview = new Review(req.body);
+    // 🛡️ ZERO-TRUST: Explicitly extract only allowed fields, ignoring admin fields
+    const { name, role, rating, text } = req.body;
+    const newReview = new Review({ name, role, rating, text });
     await newReview.save();
     res.status(200).json({ success: true });
   } catch (err) { res.status(500).json({ success: false }); }
@@ -564,48 +704,75 @@ app.get('/api/reviews', async (req, res) => {
   catch (err) { res.status(500).json({ message: "Error" }); }
 });
 
+// 🔥 FIX: Added Missing GET /api/skill API for Admin Panel 🔥
+app.get('/api/skill', async (req, res) => {
+  try { res.json(await Skill.find()); } 
+  catch (err) { res.status(500).json({ error: "Failed" }); }
+});
+
 app.get('/api/services', async (req, res) => {
   try { res.json(await Service.find()); } 
   catch (err) { res.status(500).json({ error: "Failed" }); }
+});
+
+// 🔥 GET Pinned Projects (Public API for Home/Resume)
+app.get('/api/pinned-projects', async (req, res) => {
+  try { res.json(await PinnedProject.find().sort({ pinnedAt: -1 })); } 
+  catch (err) { res.status(500).json({ message: "Error" }); }
 });
 
 app.get('/api/resume-data', async (req, res) => {
   try {
     const skills = await Skill.find();
     const experiences = await Experience.find().sort({ _id: -1 });
-    const education = await Education.find().sort({ _id: -1 }); // 🔥 Added Education
+    const education = await Education.find().sort({ _id: -1 }); 
     res.status(200).json({ skills, experiences, education });
   } catch (err) { res.status(500).json({ message: "Error fetching resume data" }); }
 });
 
 // ==========================================
-// 🔥 SECURE CLIENT PORTAL APIs 🔥
+// 🔥 SECURE CLIENT PORTAL APIs (Multi-Project Upgraded) 🔥
 // ==========================================
 app.post('/api/client/login', async (req, res) => {
   try {
     const { email, accessKey } = req.body;
 
-    const project = await ClientProject.findOne({ clientEmail: email });
-    if (!project) return res.status(404).json({ success: false, message: "Email not found." });
+    // Feature 2: Find ALL projects for this email
+    const projects = await ClientProject.find({ clientEmail: email }).sort({ _id: -1 });
+    if (!projects || projects.length === 0) return res.status(404).json({ success: false, message: "Email not found." });
 
-    const isMatch = await bcrypt.compare(accessKey, project.hashedAccessKey);
-    if (!isMatch) return res.status(401).json({ success: false, message: "Invalid Access Key." });
+    // Multi-Project Key Validation: Client can login if the provided key matches ANY of their projects' keys
+    let isValid = false;
+    for (let proj of projects) {
+        if (await bcrypt.compare(accessKey, proj.hashedAccessKey)) {
+            isValid = true;
+            break;
+        }
+    }
+
+    if (!isValid) return res.status(401).json({ success: false, message: "Invalid Access Key." });
+
+    // Send array of securely mapped projects to frontend
+    const mappedProjects = projects.map(p => ({
+        _id:            p._id, 
+        clientName:     p.clientName,
+        clientEmail:    p.clientEmail,
+        projectTitle:   p.projectTitle,
+        status:         p.status,
+        progress:       p.progress,
+        paymentStatus:  p.paymentStatus,
+        deliveryDate:   p.deliveryDate,
+        lastUpdated:    p.lastUpdated,
+        notes:          p.notes,
+        isTemporaryKey: p.isTemporaryKey || false,
+        totalCost:      p.totalCost || 0,
+        amountPaid:     p.amountPaid || 0,
+        balanceDue:     p.balanceDue || 0
+    }));
 
     return res.json({
       success: true,
-      project: {
-        _id:            project._id, // 🔥 FIX: Ye pehle missing tha
-        clientName:     project.clientName,
-        clientEmail:    project.clientEmail,
-        projectTitle:   project.projectTitle,
-        status:         project.status,
-        progress:       project.progress,
-        paymentStatus:  project.paymentStatus,
-        deliveryDate:   project.deliveryDate,
-        lastUpdated:    project.lastUpdated,
-        notes:          project.notes,
-        isTemporaryKey: project.isTemporaryKey || false 
-      }
+      projects: mappedProjects // Updated from `project: {...}` to `projects: [...]`
     });
 
   } catch (err) {
@@ -617,20 +784,24 @@ app.post('/api/client/change-password', async (req, res) => {
   try {
     const { email, oldKey, newKey } = req.body;
 
-    const project = await ClientProject.findOne({ clientEmail: email });
-    if (!project) return res.status(404).json({ success: false, message: "Project not found." });
+    // Feature 2: Update all projects for this email at once
+    const projects = await ClientProject.find({ clientEmail: email });
+    if (!projects || projects.length === 0) return res.status(404).json({ success: false, message: "Projects not found." });
 
-    const isMatch = await bcrypt.compare(oldKey, project.hashedAccessKey);
+    // Verify old key against the first matched project (since they all share the same key sync)
+    const isMatch = await bcrypt.compare(oldKey, projects[0].hashedAccessKey);
     if (!isMatch) return res.status(401).json({ success: false, message: "Incorrect current Access Key." });
 
     const salt = await bcrypt.genSalt(14);
     const hashedNewKey = await bcrypt.hash(newKey, salt);
 
-    project.hashedAccessKey = hashedNewKey;
-    project.isTemporaryKey = false; 
-    await project.save();
+    // Apply new key to ALL projects associated with this email
+    await ClientProject.updateMany(
+      { clientEmail: email }, 
+      { $set: { hashedAccessKey: hashedNewKey, isTemporaryKey: false } }
+    );
 
-    res.json({ success: true, message: "Access Key updated successfully!" });
+    res.json({ success: true, message: "Access Key updated successfully for all your projects!" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -639,16 +810,27 @@ app.post('/api/client/change-password', async (req, res) => {
 app.post('/api/client/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
-    const project = await ClientProject.findOne({ clientEmail: email });
-    if (!project) return res.status(404).json({ success: false, message: "Yeh email registered nahi hai." });
+    // Multi-Project check
+    const projects = await ClientProject.find({ clientEmail: email });
+    if (!projects || projects.length === 0) return res.status(404).json({ success: false, message: "Yeh email registered nahi hai." });
+
+    // Check 24-hour limit on the first project's timestamp to prevent spam
+    if (projects[0].lastPasswordReset) {
+      const timeSinceLastReset = Date.now() - new Date(projects[0].lastPasswordReset).getTime();
+      if (timeSinceLastReset < 24 * 60 * 60 * 1000) {
+        return res.status(429).json({ success: false, message: "Please wait 24 hours before requesting another password reset." });
+      }
+    }
 
     const tempPassword = "KEY-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-
     const salt = await bcrypt.genSalt(14);
     const hashedTemp = await bcrypt.hash(tempPassword, salt);
-    project.hashedAccessKey = hashedTemp;
-    project.isTemporaryKey = true; 
-    await project.save();
+    
+    // Update ALL projects with temporary key
+    await ClientProject.updateMany(
+      { clientEmail: email }, 
+      { $set: { hashedAccessKey: hashedTemp, isTemporaryKey: true, lastPasswordReset: Date.now() } }
+    );
 
     try {
       await clientTransporter.sendMail({
@@ -657,8 +839,8 @@ app.post('/api/client/forgot-password', async (req, res) => {
         subject: "🔐 Password Reset - Your New Portal Access Key",
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; border-radius: 10px;">
-            <h2 style="color: #333;">Hi ${project.clientName},</h2>
-            <p style="color: #555; font-size: 16px;">Your request to reset your Portal Access Key was successful.</p>
+            <h2 style="color: #333;">Hi ${projects[0].clientName},</h2>
+            <p style="color: #555; font-size: 16px;">Your request to reset your Portal Access Key was successful. This key will work for all your projects.</p>
             <div style="background: #fff; padding: 15px; border-left: 4px solid #00e5ff; margin: 20px 0;">
               <p style="margin: 0; font-size: 14px; color: #777;">Your Temporary Access Key is:</p>
               <h1 style="margin: 5px 0 0 0; color: #000; letter-spacing: 2px;">${tempPassword}</h1>
@@ -681,82 +863,40 @@ app.post('/api/client/forgot-password', async (req, res) => {
   }
 });
 
-app.post('/api/client/get-project', async (req, res) => {
+app.post('/api/client/get-projects', async (req, res) => {
+  // Notice route changed from get-project to get-projects
   try {
     const { email } = req.body;
-    const project = await ClientProject.findOne({ clientEmail: email });
-    if (!project) return res.status(404).json({ success: false, message: "Project not found." });
+    const projects = await ClientProject.find({ clientEmail: email }).sort({ _id: -1 });
+    if (!projects || projects.length === 0) return res.status(404).json({ success: false, message: "Projects not found." });
+
+    const mappedProjects = projects.map(p => ({
+        _id:            p._id, 
+        clientName:     p.clientName,
+        clientEmail:    p.clientEmail,
+        projectTitle:   p.projectTitle,
+        status:         p.status,
+        progress:       p.progress,
+        paymentStatus:  p.paymentStatus,
+        deliveryDate:   p.deliveryDate,
+        lastUpdated:    p.lastUpdated,
+        notes:          p.notes,
+        isTemporaryKey: p.isTemporaryKey || false,
+        totalCost:      p.totalCost || 0,
+        amountPaid:     p.amountPaid || 0,
+        balanceDue:     p.balanceDue || 0
+    }));
 
     return res.json({
       success: true,
-      project: {
-        _id:            project._id, // 🔥 FIX: Yahan bhi add kar diya gaya hai
-        clientName:     project.clientName,
-        clientEmail:    project.clientEmail,
-        projectTitle:   project.projectTitle,
-        status:         project.status,
-        progress:       project.progress,
-        paymentStatus:  project.paymentStatus,
-        deliveryDate:   project.deliveryDate,
-        lastUpdated:    project.lastUpdated,
-        notes:          project.notes,
-        isTemporaryKey: project.isTemporaryKey || false 
-      }
+      projects: mappedProjects 
     });
 
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
-// 🔥 CLIENT TO ADMIN MESSAGING API 🔥
-app.post('/api/client/send-message', async (req, res) => {
-  try {
-    const { email, projectId, message } = req.body;
 
-    // 1. DB se project dhundho taaki client ka original naam aur project title mil sake
-    const project = await ClientProject.findById(projectId);
-    if (!project) return res.status(404).json({ success: false, message: "Project not found" });
-
-    // 2. Message ko Database me save karo
-    // 'type: contact' rakhne se ye aapke Admin Dashboard ke "Messages" tab me automatic dikhega!
-    const newMessage = new Message({
-      name: project.clientName,
-      email: project.clientEmail,
-      message: `[Project: ${project.projectTitle}]\n\n${message}`,
-      type: 'contact', 
-      date: Date.now()
-    });
-    await newMessage.save();
-
-    // 3. Admin ko Email Alert bhejo
-    try {
-      await adminTransporter.sendMail({
-        from: `"Client Portal Alert" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
-        to: process.env.ADMIN_EMAIL_USER || process.env.EMAIL_USER,
-        subject: `📩 Portal Reply: ${project.clientName} on project ${project.projectTitle}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; border-radius: 10px;">
-            <h2 style="color: #333;">New Message from Client Portal</h2>
-            <p style="color: #555;"><strong>Client:</strong> ${project.clientName} (${project.clientEmail})</p>
-            <p style="color: #555;"><strong>Project:</strong> ${project.projectTitle}</p>
-            
-            <div style="background: #fff; padding: 15px; border-left: 4px solid #00e5ff; margin: 20px 0;">
-              <p style="margin: 0; font-size: 14px; color: #777;">Message:</p>
-              <p style="margin: 5px 0 0 0; color: #333; font-size: 15px; white-space: pre-wrap;">${message}</p>
-            </div>
-            <p style="color: #555; font-size: 14px;">You can view and delete this message from your Admin Dashboard Inbox.</p>
-          </div>
-        `
-      });
-    } catch(mailErr) {
-      console.log("Admin alert email failed, but message saved to DB.");
-    }
-
-    res.json({ success: true, message: "Message sent successfully" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
 // 🔥 CLIENT TO ADMIN MESSAGING API 🔥
 app.post('/api/client/send-message', async (req, res) => {
   try {
@@ -782,9 +922,19 @@ app.post('/api/client/send-message', async (req, res) => {
 
     // 3. Admin ko Email Alert bhejo
     try {
+      // 1. Dono Admins ke emails define karein (Ensure ye .env me added hain)
+      const adminEmails = [
+        process.env.SUPER_ADMIN_EMAIL, 
+        process.env.ADMIN_EMAIL
+      ].filter(Boolean).join(', '); // .filter(Boolean) empty/undefined emails ko hata dega
+
       await adminTransporter.sendMail({
-        from: `"Client Portal Alert" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
-        to: process.env.ADMIN_EMAIL_USER || process.env.EMAIL_USER,
+        // 2. SENDER ab strictly TEAM EMAIL hoga
+        from: `"Client Portal Alert" <${process.env.TEAM_EMAIL_USER}>`, 
+        
+        // 3. RECIPIENT mein dono admins jayenge
+        to: adminEmails || process.env.TEAM_EMAIL_USER, 
+        
         subject: `📩 Portal Reply: ${project.clientName} (${project.projectTitle})`,
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; border-radius: 10px;">
@@ -801,7 +951,7 @@ app.post('/api/client/send-message', async (req, res) => {
         `
       });
     } catch(mailErr) {
-      console.log("Admin alert email failed, but message saved to DB.");
+      console.log("Admin alert email failed, but message saved to DB.", mailErr);
     }
 
     res.json({ success: true, message: "Message sent successfully" });
@@ -815,6 +965,42 @@ app.post('/api/client/send-message', async (req, res) => {
 // ==========================================
 // 8. 🛡️ PROTECTED ADMIN APIs (WITH RBAC) 🛡️
 // ==========================================
+
+// 🔥 NEW: Toggle GitHub Project Pin Status 🔥
+app.post('/api/pinned-projects', verifyAdminToken, checkPerm(['cms']), async (req, res) => {
+  try {
+    const { repoId, name, description, html_url, techStack, dateRange } = req.body;
+    const existing = await PinnedProject.findOne({ repoId });
+
+    if (existing) {
+      await PinnedProject.deleteOne({ repoId });
+      res.json({ success: true, isPinned: false, message: "Project hidden from Home/Resume!" });
+    } else {
+      await PinnedProject.create({ repoId, name, description, html_url, techStack: techStack || '', dateRange: dateRange || '' });
+      res.json({ success: true, isPinned: true, message: "Project displayed on Home/Resume!" });
+    }
+  } catch (err) { 
+    res.status(500).json({ success: false, message: err.message }); 
+  }
+});
+
+// 🔥 UPDATE Pinned Project Resume Details (techStack, dateRange, description) 🔥
+app.put('/api/pinned-projects/:id', verifyAdminToken, checkPerm(['cms']), async (req, res) => {
+  try {
+    const { techStack, dateRange, description } = req.body;
+    const project = await PinnedProject.findById(req.params.id);
+    if (!project) return res.status(404).json({ success: false, message: "Pinned project not found" });
+
+    if (techStack !== undefined) project.techStack = techStack;
+    if (dateRange !== undefined) project.dateRange = dateRange;
+    if (description !== undefined) project.description = description;
+    await project.save();
+
+    res.json({ success: true, message: "Project resume details updated!" });
+  } catch (err) { 
+    res.status(500).json({ success: false, message: err.message }); 
+  }
+});
 
 // 🔥 🆕 TEAM MANAGEMENT APIs (Superadmin ONLY) 🆕 🔥
 app.get('/api/admin/team', verifyAdminToken, checkPerm(['team']), async (req, res) => {
@@ -926,6 +1112,30 @@ app.post('/api/skill', verifyAdminToken, checkPerm(['skills']), async (req, res)
     res.status(200).json({ success: true, message: "Skill added!" });
   } catch (err) { res.status(500).json({ success: false }); }
 });
+app.delete('/api/skill/:id', verifyAdminToken, checkPerm(['skills']), async (req, res) => {
+  try { 
+    await Skill.findByIdAndDelete(req.params.id); 
+    res.json({ success: true, message: "Skill deleted!" }); 
+  } catch (err) { 
+    res.status(500).json({ success: false, message: "Delete failed" }); 
+  }
+});
+app.put('/api/skill/:id', verifyAdminToken, checkPerm(['skills']), async (req, res) => {
+  try {
+    await Skill.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json({ success: true, message: "Skill updated successfully!" });
+  } catch (err) { 
+    res.status(500).json({ success: false, message: "Update failed" }); 
+  }
+});
+app.put('/api/services/:id', verifyAdminToken, checkPerm(['services']), async (req, res) => {
+  try {
+    await Service.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json({ success: true, message: "Service updated successfully!" });
+  } catch (err) { 
+    res.status(500).json({ success: false, message: "Update failed" }); 
+  }
+});
 
 // 🔥 EDUCATION APIs
 app.post('/api/education', verifyAdminToken, checkPerm(['skills']), async (req, res) => {
@@ -955,24 +1165,7 @@ app.delete('/api/experience/:id', verifyAdminToken, checkPerm(['skills']), async
   try { await Experience.findByIdAndDelete(req.params.id); res.json({ success: true }); } 
   catch (err) { res.status(500).json({ success: false }); }
 });
-// ==========================================
-// 🔥 NEW: EXPERIENCE (TIMELINE) APIs 🔥
-// ==========================================
-app.post('/api/experience', verifyAdminToken, checkPerm(['skills']), async (req, res) => {
-  try {
-    const { role, company, duration, description } = req.body;
-    const newExp = new Experience({ role, company, duration, description });
-    await newExp.save();
-    res.status(200).json({ success: true, message: "Experience added!" });
-  } catch (err) { res.status(500).json({ success: false }); }
-});
 
-app.delete('/api/experience/:id', verifyAdminToken, checkPerm(['skills']), async (req, res) => {
-  try { 
-    await Experience.findByIdAndDelete(req.params.id); 
-    res.json({ success: true }); 
-  } catch (err) { res.status(500).json({ success: false }); }
-});
 
 app.post('/api/services', verifyAdminToken, checkPerm(['services']), async (req, res) => {
   try {
@@ -996,6 +1189,15 @@ app.get('/api/client-projects', verifyAdminToken, checkPerm(['projects', 'paymen
 app.post('/api/client-projects', verifyAdminToken, checkPerm(['projects']), async (req, res) => {
   try {
     req.body.lastUpdated = Date.now();
+    // Multi-Project check: Ensure manual backend edits also sync logic
+    if (req.body.amountPaid && req.body.totalCost) {
+        req.body.balanceDue = req.body.totalCost - req.body.amountPaid;
+        if (req.body.balanceDue < 0) req.body.balanceDue = 0;
+        
+        const percentage = Math.round((req.body.amountPaid / req.body.totalCost) * 100);
+        req.body.paymentStatus = percentage >= 100 ? 'Fully Paid' : `Partial (${percentage}%)`;
+    }
+
     if(req.body._id) {
       await ClientProject.findByIdAndUpdate(req.body._id, req.body); 
     } else {
@@ -1051,11 +1253,19 @@ app.post('/api/admin/verify-client-payment/:id', verifyAdminToken, checkPerm(['p
     const project = await ClientProject.findById(req.params.id);
     if(!project) return res.status(404).json({ success: false, message: "Project not found" });
 
-    const rawAccessKey = crypto.randomBytes(6).toString('hex').toUpperCase();
-    const salt = await bcrypt.genSalt(14);
-    const hashedKey = await bcrypt.hash(rawAccessKey, salt);
+    // Multi-Project Key Sync logic for admin manual verify
+    let rawAccessKey = "Same as existing Access Key";
+    
+    const otherProjects = await ClientProject.find({ clientEmail: project.clientEmail, _id: { $ne: project._id } });
+    if (otherProjects && otherProjects.length > 0) {
+        // Sync with existing
+        project.hashedAccessKey = otherProjects[0].hashedAccessKey;
+    } else {
+        rawAccessKey = crypto.randomBytes(6).toString('hex').toUpperCase();
+        const salt = await bcrypt.genSalt(14);
+        project.hashedAccessKey = await bcrypt.hash(rawAccessKey, salt);
+    }
 
-    project.hashedAccessKey = hashedKey;
     project.isPaymentVerified = true;
     project.paymentStatus = req.body.paymentStatus || 'Verified/Paid';
     project.status = 'Development Phase';
@@ -1066,7 +1276,7 @@ app.post('/api/admin/verify-client-payment/:id', verifyAdminToken, checkPerm(['p
         from: `"Shivam Web Studio" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
         to: project.clientEmail,
         subject: "🎉 Payment Verified - Your Project Access Key",
-        html: `<h3>Hi ${project.clientName},</h3><p>Your payment for <strong>${project.projectTitle}</strong> has been successfully verified.</p><p>You can now track your project's live progress on our portal.</p><br><p><strong>Login Email:</strong> ${project.clientEmail}</p><p><strong>Secure Access Key:</strong> <span style="font-size:24px; color:#00e5ff; font-weight:bold; letter-spacing: 4px;">${rawAccessKey}</span></p><br><p><em>Note: For security reasons, this key is encrypted in our database. Do not share it with anyone!</em></p>`
+        html: `<h3>Hi ${project.clientName},</h3><p>Your payment for <strong>${project.projectTitle}</strong> has been successfully verified.</p><p>You can now track your project's live progress on our portal.</p><br><p><strong>Login Email:</strong> ${project.clientEmail}</p><p><strong>Secure Access Key:</strong> <span style="font-size:24px; color:#00e5ff; font-weight:bold; letter-spacing: 4px;">${rawAccessKey}</span></p><br><p><em>Note: For security reasons, do not share it with anyone!</em></p>`
       });
     } catch(mailErr) {
        console.log("Email failed, but key was generated.");
@@ -1084,9 +1294,41 @@ app.post('/api/admin/approve-payment-message/:msgId', verifyAdminToken, checkPer
     if (!msg) return res.status(404).json({ success: false, message: "Message not found" });
 
     const customPaymentStatus = req.body.paymentStatus || 'Fully Paid';
-    const rawAccessKey = crypto.randomBytes(6).toString('hex').toUpperCase();
-    const salt = await bcrypt.genSalt(14);
-    const hashedKey = await bcrypt.hash(rawAccessKey, salt);
+
+    // REMAINING BALANCE MANUAL APPROVAL LOGIC
+    if (msg.projectId) {
+        const project = await ClientProject.findById(msg.projectId);
+        if (project) {
+            project.paymentStatus = customPaymentStatus;
+            project.balanceDue = 0; // Assume fully paid if admin approves
+            await project.save();
+            await Message.findByIdAndDelete(req.params.msgId);
+            
+            try {
+              await clientTransporter.sendMail({
+                from: `"Shivam Web Studio" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
+                to: msg.email,
+                subject: "🎉 Remaining Balance Verified",
+                html: `<h3>Hi ${msg.name},</h3><p>Your remaining balance payment is verified. Project status is now ${customPaymentStatus}.</p>`
+              });
+            } catch(e) {}
+
+            return res.json({ success: true, message: "Remaining Balance Verified Successfully!" });
+        }
+    }
+
+    // MULTI-PROJECT SYNC FOR NEW PROJECT APPROVAL
+    let rawAccessKey = "Same as existing Access Key";
+    let hashedKey = "";
+    
+    const existingProject = await ClientProject.findOne({ clientEmail: msg.email });
+    if (existingProject) {
+        hashedKey = existingProject.hashedAccessKey;
+    } else {
+        rawAccessKey = crypto.randomBytes(6).toString('hex').toUpperCase();
+        const salt = await bcrypt.genSalt(14);
+        hashedKey = await bcrypt.hash(rawAccessKey, salt);
+    }
 
     const newProject = new ClientProject({
       clientEmail: msg.email,
