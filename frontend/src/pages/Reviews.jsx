@@ -26,7 +26,7 @@ const Reviews = () => {
   // ==========================================
   const fetchAllReviews = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/reviews");
+      const res = await fetch("https://portfolio-h37w.onrender.com/api/reviews");
       const data = await res.json();
       setReviews(data);
     } catch (err) {
@@ -55,7 +55,7 @@ const Reviews = () => {
     };
 
     try {
-      const response = await fetch("http://localhost:5000/api/reviews", {
+      const response = await fetch("https://portfolio-h37w.onrender.com/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newReview)

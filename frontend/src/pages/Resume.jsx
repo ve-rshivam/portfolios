@@ -35,7 +35,7 @@ const Resume = () => {
 
   useEffect(() => {
     // 1. Fetch Pinned Projects (same as Home page — NOT all GitHub repos)
-    fetch(`http://localhost:5000/api/pinned-projects`)
+    fetch(`https://portfolio-h37w.onrender.com/api/pinned-projects`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setPinnedProjects(data);
@@ -43,7 +43,7 @@ const Resume = () => {
       .catch(err => console.error("Pinned Projects Fetch Error:", err));
 
     // 2. Fetch Skills, Experience, Education from backend
-    fetch("http://localhost:5000/api/resume-data")
+    fetch("https://portfolio-h37w.onrender.com/api/resume-data")
       .then(res => res.json())
       .then(data => {
         setSkills(data.skills || []);
@@ -57,7 +57,7 @@ const Resume = () => {
       });
 
     // 3. Fetch CMS content for name
-    fetch("http://localhost:5000/api/content")
+    fetch("https://portfolio-h37w.onrender.com/api/content")
       .then(res => res.json())
       .then(data => {
         if (data?.homeData?.heroTitle) {

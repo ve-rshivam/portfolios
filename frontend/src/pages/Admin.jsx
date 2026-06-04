@@ -83,10 +83,10 @@ const Admin = () => {
       const headers = { "Authorization": `Bearer ${token}` }; 
 
       // 1. Unconditional Fetches (Because these are public data APIs)
-      const srvRes = await fetch("http://localhost:5000/api/services"); 
+      const srvRes = await fetch("https://portfolio-h37w.onrender.com/api/services"); 
       if(srvRes.ok) setServices(await srvRes.json());
 
-      const skillRes = await fetch("http://localhost:5000/api/resume-data");
+      const skillRes = await fetch("https://portfolio-h37w.onrender.com/api/resume-data");
       if(skillRes.ok) {
         const skillData = await skillRes.json();
         setSkills(skillData.skills || []);
@@ -96,22 +96,22 @@ const Admin = () => {
 
       // 2. Conditional / Protected Fetches
       if (hasPerm('messages') || hasPerm('payments')) {
-        const msgRes = await fetch("http://localhost:5000/api/messages", { headers });
+        const msgRes = await fetch("https://portfolio-h37w.onrender.com/api/messages", { headers });
         if(msgRes.ok) setInboxData(await msgRes.json());
       }
 
       if (hasPerm('reviews')) {
-        const revRes = await fetch("http://localhost:5000/api/reviews"); 
+        const revRes = await fetch("https://portfolio-h37w.onrender.com/api/reviews"); 
         if(revRes.ok) setReviews(await revRes.json());
       }
       
       if (hasPerm('projects') || hasPerm('payments')) {
-        const projRes = await fetch("http://localhost:5000/api/client-projects", { headers });
+        const projRes = await fetch("https://portfolio-h37w.onrender.com/api/client-projects", { headers });
         if(projRes.ok) setClientProjects(await projRes.json());
       }
 
       if (hasPerm('cms')) {
-        const contentRes = await fetch("http://localhost:5000/api/content"); 
+        const contentRes = await fetch("https://portfolio-h37w.onrender.com/api/content"); 
         if(contentRes.ok) {
           const content = await contentRes.json();
           setHomeData(content.homeData || {});
@@ -120,7 +120,7 @@ const Admin = () => {
           setPolicyData(content.policyData || {});
         }
 
-        const pinRes = await fetch("http://localhost:5000/api/pinned-projects");
+        const pinRes = await fetch("https://portfolio-h37w.onrender.com/api/pinned-projects");
         if (pinRes.ok) setPinnedProjects(await pinRes.json());
 
         const githubUser = "ve-rshivam";
@@ -129,7 +129,7 @@ const Admin = () => {
       }
 
       if (adminRole === 'superadmin') {
-        const teamRes = await fetch("http://localhost:5000/api/admin/team", { headers });
+        const teamRes = await fetch("https://portfolio-h37w.onrender.com/api/admin/team", { headers });
         if(teamRes.ok) setTeamList(await teamRes.json());
       }
 
@@ -148,7 +148,7 @@ const Admin = () => {
     if (window.confirm("Delete this permanently?")) {
       try {
         const token = localStorage.getItem("adminToken");
-        await fetch(`http://localhost:5000/api/messages/${id}`, { 
+        await fetch(`https://portfolio-h37w.onrender.com/api/messages/${id}`, { 
           method: 'DELETE', headers: { "Authorization": `Bearer ${token}` }
         });
         fetchDashboardData();
@@ -161,7 +161,7 @@ const Admin = () => {
     setCmsStatus("Saving changes to database...");
     try {
       const token = localStorage.getItem("adminToken");
-      const res = await fetch("http://localhost:5000/api/content/update", {
+      const res = await fetch("https://portfolio-h37w.onrender.com/api/content/update", {
         method: "POST", 
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
         body: JSON.stringify({ homeData, aboutData, contactData, policyData }) 
@@ -174,7 +174,7 @@ const Admin = () => {
   const toggleGitHubPin = async (repo) => {
     try {
       const token = localStorage.getItem("adminToken");
-      const res = await fetch("http://localhost:5000/api/pinned-projects", {
+      const res = await fetch("https://portfolio-h37w.onrender.com/api/pinned-projects", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
@@ -196,7 +196,7 @@ const Admin = () => {
   const togglePinReview = async (id) => {
     try {
       const token = localStorage.getItem("adminToken");
-      await fetch(`http://localhost:5000/api/reviews/${id}/pin`, { 
+      await fetch(`https://portfolio-h37w.onrender.com/api/reviews/${id}/pin`, { 
         method: 'PUT', headers: { "Authorization": `Bearer ${token}` }
       });
       fetchDashboardData();
@@ -207,7 +207,7 @@ const Admin = () => {
     if(window.confirm("Delete this review forever?")) {
       try {
         const token = localStorage.getItem("adminToken");
-        await fetch(`http://localhost:5000/api/reviews/${id}`, { 
+        await fetch(`https://portfolio-h37w.onrender.com/api/reviews/${id}`, { 
           method: 'DELETE', headers: { "Authorization": `Bearer ${token}` }
         });
         fetchDashboardData();
@@ -220,7 +220,7 @@ const Admin = () => {
     if(newText && newText !== currentText) {
       try {
         const token = localStorage.getItem("adminToken");
-        await fetch(`http://localhost:5000/api/reviews/${id}/edit`, { 
+        await fetch(`https://portfolio-h37w.onrender.com/api/reviews/${id}/edit`, { 
           method: 'PUT',
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify({ text: newText })
@@ -235,7 +235,7 @@ const Admin = () => {
     if(reply !== null) {
       try {
         const token = localStorage.getItem("adminToken");
-        await fetch(`http://localhost:5000/api/reviews/${id}/reply`, { 
+        await fetch(`https://portfolio-h37w.onrender.com/api/reviews/${id}/reply`, { 
           method: 'PUT',
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify({ adminReply: reply })
@@ -252,7 +252,7 @@ const Admin = () => {
     try {
       const token = localStorage.getItem("adminToken");
       const isEditing = !!newService._id; // Check if we are updating
-      const url = isEditing ? `http://localhost:5000/api/services/${newService._id}` : "http://localhost:5000/api/services";
+      const url = isEditing ? `https://portfolio-h37w.onrender.com/api/services/${newService._id}` : "https://portfolio-h37w.onrender.com/api/services";
       const method = isEditing ? "PUT" : "POST";
 
       const res = await fetch(url, {
@@ -272,7 +272,7 @@ const Admin = () => {
     if(window.confirm("Delete this service?")) {
       try {
         const token = localStorage.getItem("adminToken");
-        await fetch(`http://localhost:5000/api/services/${id}`, { 
+        await fetch(`https://portfolio-h37w.onrender.com/api/services/${id}`, { 
           method: 'DELETE', headers: { "Authorization": `Bearer ${token}` }
         });
         fetchDashboardData();
@@ -285,7 +285,7 @@ const Admin = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("adminToken");
-      const res = await fetch("http://localhost:5000/api/education", { 
+      const res = await fetch("https://portfolio-h37w.onrender.com/api/education", { 
         method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify(newEdu)
       });
       if(res.ok) {
@@ -299,7 +299,7 @@ const Admin = () => {
     if(window.confirm("Delete this education record?")) {
       try {
         const token = localStorage.getItem("adminToken");
-        await fetch(`http://localhost:5000/api/education/${id}`, { method: 'DELETE', headers: { "Authorization": `Bearer ${token}` } });
+        await fetch(`https://portfolio-h37w.onrender.com/api/education/${id}`, { method: 'DELETE', headers: { "Authorization": `Bearer ${token}` } });
         fetchDashboardData();
       } catch(err) { alert("Failed to delete"); }
     }
@@ -312,7 +312,7 @@ const Admin = () => {
     try {
       const token = localStorage.getItem("adminToken");
       const isEditing = !!newSkill._id; // Check if we are updating
-      const url = isEditing ? `http://localhost:5000/api/skill/${newSkill._id}` : "http://localhost:5000/api/skill";
+      const url = isEditing ? `https://portfolio-h37w.onrender.com/api/skill/${newSkill._id}` : "https://portfolio-h37w.onrender.com/api/skill";
       const method = isEditing ? "PUT" : "POST";
 
       const res = await fetch(url, { 
@@ -337,7 +337,7 @@ const Admin = () => {
     if (window.confirm("Delete this skill? It will be removed from the Skills page.")) {
       try {
         const token = localStorage.getItem("adminToken");
-        const res = await fetch(`http://localhost:5000/api/skill/${id}`, {
+        const res = await fetch(`https://portfolio-h37w.onrender.com/api/skill/${id}`, {
           method: 'DELETE',
           headers: { "Authorization": `Bearer ${token}` }
         });
@@ -360,7 +360,7 @@ const Admin = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("adminToken");
-      const res = await fetch("http://localhost:5000/api/experience", {
+      const res = await fetch("https://portfolio-h37w.onrender.com/api/experience", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(newExp)
@@ -379,7 +379,7 @@ const Admin = () => {
     if(window.confirm("Delete this experience record from Timeline?")) {
       try {
         const token = localStorage.getItem("adminToken");
-        await fetch(`http://localhost:5000/api/experience/${id}`, {
+        await fetch(`https://portfolio-h37w.onrender.com/api/experience/${id}`, {
           method: 'DELETE', headers: { "Authorization": `Bearer ${token}` }
         });
         fetchDashboardData();
@@ -392,7 +392,7 @@ const Admin = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("adminToken");
-      const res = await fetch("http://localhost:5000/api/client-projects", {
+      const res = await fetch("https://portfolio-h37w.onrender.com/api/client-projects", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(newProject)
@@ -409,7 +409,7 @@ const Admin = () => {
     if(window.confirm("Delete this client project tracking?")) {
       try {
         const token = localStorage.getItem("adminToken");
-        await fetch(`http://localhost:5000/api/client-projects/${id}`, { 
+        await fetch(`https://portfolio-h37w.onrender.com/api/client-projects/${id}`, { 
           method: 'DELETE', headers: { "Authorization": `Bearer ${token}` }
         });
         fetchDashboardData();
@@ -422,7 +422,7 @@ const Admin = () => {
     if(msg) {
       try {
         const token = localStorage.getItem("adminToken");
-        const res = await fetch(`http://localhost:5000/api/client-projects/${projectId}/message`, {
+        const res = await fetch(`https://portfolio-h37w.onrender.com/api/client-projects/${projectId}/message`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify({ message: msg })
@@ -441,7 +441,7 @@ const Admin = () => {
     if(window.confirm("Are you sure? This will generate a secure access key and email it to the client immediately.")) {
       try {
         const token = localStorage.getItem("adminToken");
-        const res = await fetch(`http://localhost:5000/api/admin/verify-client-payment/${projectId}`, {
+        const res = await fetch(`https://portfolio-h37w.onrender.com/api/admin/verify-client-payment/${projectId}`, {
           method: "POST", headers: { "Authorization": `Bearer ${token}` }
         });
         const data = await res.json();
@@ -461,7 +461,7 @@ const Admin = () => {
     if(window.confirm(`Auto-create project with payment status: "${customStatus}"?`)) {
       try {
         const token = localStorage.getItem("adminToken");
-        const res = await fetch(`http://localhost:5000/api/admin/approve-payment-message/${msgId}`, {
+        const res = await fetch(`https://portfolio-h37w.onrender.com/api/admin/approve-payment-message/${msgId}`, {
           method: "POST", 
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify({ paymentStatus: customStatus })
@@ -482,7 +482,7 @@ const Admin = () => {
     if(window.confirm("Are you sure? This will delete the request and email the client that verification failed.")) {
       try {
         const token = localStorage.getItem("adminToken");
-        const res = await fetch(`http://localhost:5000/api/admin/reject-payment-message/${msgId}`, {
+        const res = await fetch(`https://portfolio-h37w.onrender.com/api/admin/reject-payment-message/${msgId}`, {
           method: "POST", 
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify({ reason: reason }) 
@@ -500,7 +500,7 @@ const Admin = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("adminToken");
-      const res = await fetch("http://localhost:5000/api/admin/team", {
+      const res = await fetch("https://portfolio-h37w.onrender.com/api/admin/team", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(newTeamMember)
@@ -518,7 +518,7 @@ const Admin = () => {
     if(window.confirm("Remove this member from the team? They will lose dashboard access immediately.")) {
       try {
         const token = localStorage.getItem("adminToken");
-        await fetch(`http://localhost:5000/api/admin/team/${id}`, { 
+        await fetch(`https://portfolio-h37w.onrender.com/api/admin/team/${id}`, { 
           method: 'DELETE', headers: { "Authorization": `Bearer ${token}` }
         });
         fetchDashboardData();
@@ -539,7 +539,7 @@ const Admin = () => {
     setSecurityMsg("Updating...");
     try {
       const token = localStorage.getItem("adminToken");
-      const res = await fetch("http://localhost:5000/api/admin/update-security", {
+      const res = await fetch("https://portfolio-h37w.onrender.com/api/admin/update-security", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(securityData)
@@ -561,7 +561,7 @@ const Admin = () => {
     e.preventDefault();
     setLoginError("Verifying...");
     try {
-      const res = await fetch("http://localhost:5000/api/admin/login", {
+      const res = await fetch("https://portfolio-h37w.onrender.com/api/admin/login", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(loginData)
       });
       const data = await res.json();
@@ -578,7 +578,7 @@ const Admin = () => {
     e.preventDefault();
     setLoginError("Checking PIN...");
     try {
-      const res = await fetch("http://localhost:5000/api/admin/verify-2fa", {
+      const res = await fetch("https://portfolio-h37w.onrender.com/api/admin/verify-2fa", {
         method: "POST", headers: { "Content-Type": "application/json" }, 
         body: JSON.stringify({ identifier: loginData.identifier, pin: backupPin })
       });
@@ -605,7 +605,7 @@ const Admin = () => {
     e.preventDefault();
     setLoginError("Sending OTP...");
     try {
-      const res = await fetch("http://localhost:5000/api/admin/forgot-password", {
+      const res = await fetch("https://portfolio-h37w.onrender.com/api/admin/forgot-password", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier: resetIdentifier })
       });
       const data = await res.json();
@@ -623,7 +623,7 @@ const Admin = () => {
     e.preventDefault();
     setLoginError("Resetting Password...");
     try {
-      const res = await fetch("http://localhost:5000/api/admin/reset-password", {
+      const res = await fetch("https://portfolio-h37w.onrender.com/api/admin/reset-password", {
         method: "POST", headers: { "Content-Type": "application/json" }, 
         body: JSON.stringify({ identifier: resetIdentifier, otp: resetOtp, newPassword })
       });

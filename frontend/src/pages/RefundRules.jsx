@@ -6,7 +6,7 @@ const RefundRules = ({ fontSize = '15px' }) => {
 
   // Fetch dynamic content from Admin CMS
   useEffect(() => {
-    fetch("http://localhost:5000/api/content")
+    fetch("https://portfolio-h37w.onrender.com/api/content")
       .then(res => res.json())
       .then(data => {
         if (data && data.policyData && data.policyData.refund) {
