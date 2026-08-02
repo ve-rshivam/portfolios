@@ -11,7 +11,7 @@ const Experience = () => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
 
-    fetch("https://portfolio-h37w.onrender.com/api/resume-data")
+    fetch("http://localhost:5000/api/resume-data")
       .then(res => res.json())
       .then(data => {
         if (data && data.experiences) {

@@ -28,7 +28,7 @@ const Home = () => {
 
   // Fetch CMS Content
   useEffect(() => {
-    fetch("https://portfolio-h37w.onrender.com/api/content")
+    fetch("http://localhost:5000/api/content")
       .then(res => res.json())
       .then(data => {
         if(data) {
@@ -71,7 +71,7 @@ const Home = () => {
   useEffect(() => {
 
     // 🔥 ADMIN CONTROLLED PROJECTS (Instead of raw GitHub fetch) 🔥
-    fetch(`https://portfolio-h37w.onrender.com/api/pinned-projects`)
+    fetch(`http://localhost:5000/api/pinned-projects`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -84,7 +84,7 @@ const Home = () => {
     // 2. Fetch Top Reviews (🔥 Pinned Reviews from Database)
     const fetchReviews = async () => {
       try {
-        const res = await fetch("https://portfolio-h37w.onrender.com/api/reviews");
+        const res = await fetch("http://localhost:5000/api/reviews");
         if (res.ok) {
           const data = await res.json();
           // Sirf wo reviews nikalo jinko Admin ne Pin kiya hai
@@ -101,7 +101,7 @@ const Home = () => {
     // 3. Fetch Live Skills from DB
     const fetchSkills = async () => {
       try {
-        const res = await fetch("https://portfolio-h37w.onrender.com/api/resume-data");
+        const res = await fetch("http://localhost:5000/api/resume-data");
         if (res.ok) {
           const data = await res.json();
           if (data.skills && data.skills.length > 0) {

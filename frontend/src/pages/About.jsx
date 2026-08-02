@@ -196,7 +196,7 @@ const About = () => {
             <div style={{ padding: '25px', fontFamily: 'monospace', fontSize: '15px', lineHeight: '2' }}>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <span style={{ color: themeColors.accent }}>➜</span>
-                <span style={{ color: 'white' }}>whoami</span>
+                <span style={{ color: 'white' }}>Who am I</span>
               </div>
               <div style={{ color: '#00f5a0', paddingLeft: '20px', marginBottom: '15px' }}>
                 Shivam Kumar | CS Student, MERN Dev & AIML

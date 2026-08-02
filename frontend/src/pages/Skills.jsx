@@ -92,13 +92,13 @@ const Skills = () => {
     const fetchData = async () => {
       try {
         // 1. Fetch Existing Backend Skills (Admin CMS wala)
-        const resumeRes = await fetch("https://portfolio-h37w.onrender.com/api/resume-data").catch(() => null);
+        const resumeRes = await fetch("http://localhost:5000/api/resume-data").catch(() => null);
         const resumeData = resumeRes ? await resumeRes.json() : { skills: [] };
         const serverSkills = resumeData.skills && resumeData.skills.length > 0 ? resumeData.skills : [];
 
         // 2. Fetch LinkedIn Skills via Backend 
         // (NOTE: Direct frontend scraping block hoti hai, isliye backend se mangwa rahe hain)
-        const linkedinRes = await fetch("https://portfolio-h37w.onrender.com/api/linkedin-skills").catch(() => null);
+        const linkedinRes = await fetch("http://localhost:5000/api/linkedin-skills").catch(() => null);
         const linkedinData = linkedinRes ? await linkedinRes.json() : [];
         const linkedinSkills = Array.isArray(linkedinData) ? linkedinData : [];
 

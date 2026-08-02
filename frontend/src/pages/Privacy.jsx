@@ -8,7 +8,7 @@ const Privacy = () => {
 
   // Fetch dynamic content from Admin CMS
   useEffect(() => {
-    fetch("https://portfolio-h37w.onrender.com/api/content")
+    fetch("http://localhost:5000/api/content")
       .then(res => res.json())
       .then(data => {
         if (data && data.policyData && data.policyData.privacy) {

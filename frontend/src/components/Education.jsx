@@ -14,7 +14,7 @@ const Education = () => {
 
     const fetchEducationData = async () => {
       try {
-        const res = await fetch("https://portfolio-h37w.onrender.com/api/resume-data");
+        const res = await fetch("http://localhost:5000/api/resume-data");
         const data = await res.json();
 
         if (isMounted) {

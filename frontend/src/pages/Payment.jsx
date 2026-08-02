@@ -42,7 +42,7 @@ const Payment = () => {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const res = await fetch("https://portfolio-h37w.onrender.com/api/services");
+        const res = await fetch("http://localhost:5000/api/services");
         if (res.ok) {
           const data = await res.json();
           setServicesList(data);
@@ -116,7 +116,7 @@ const Payment = () => {
     }
 
     try {
-      fetch("https://portfolio-h37w.onrender.com/api/messages", {
+      fetch("http://localhost:5000/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -186,7 +186,7 @@ const Payment = () => {
     };
 
     try {
-      const dbRes = await fetch("https://portfolio-h37w.onrender.com/api/messages", {
+      const dbRes = await fetch("http://localhost:5000/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(dataForDB)
@@ -254,7 +254,7 @@ const Payment = () => {
     }
 
     try {
-      const orderRes = await fetch("https://portfolio-h37w.onrender.com/api/payment/razorpay-order", {
+      const orderRes = await fetch("http://localhost:5000/api/payment/razorpay-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody) 
@@ -284,7 +284,7 @@ const Payment = () => {
         handler: async function (response) {
           setPaymentStatusMessage("Verifying transaction securely on server...");
           try {
-            const verifyRes = await fetch("https://portfolio-h37w.onrender.com/api/payment/gateway-success", {
+            const verifyRes = await fetch("http://localhost:5000/api/payment/gateway-success", {
               method: "POST", 
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -544,7 +544,7 @@ const Payment = () => {
                             setPaymentStatusMessage("Verifying PayPal transaction on server securely...");
                             try {
                               const details = await actions.order.capture();
-                              const res = await fetch("https://portfolio-h37w.onrender.com/api/payment/gateway-success", {
+                              const res = await fetch("http://localhost:5000/api/payment/gateway-success", {
                                 method: "POST", headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({ 
                                   name: clientDetails.name, 

@@ -36,10 +36,22 @@ const app = express();
 app.use(helmet()); 
 app.use(mongoSanitize());
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL, // Set this in your Render/hosting env vars to your Vercel domain
+].filter(Boolean);
+
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://aapki-website-ka-domain.com'] 
-    : '*', 
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.some(allowed => origin === allowed || origin.endsWith('.vercel.app'))) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all for now — tighten in production later
+    }
+  },
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true,
 };

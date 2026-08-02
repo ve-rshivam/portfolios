@@ -9,7 +9,7 @@ const Legal = () => {
 
   // Fetch dynamic content from Admin CMS for Legal page sections
   useEffect(() => {
-    fetch("https://portfolio-h37w.onrender.com/api/content")
+    fetch("http://localhost:5000/api/content")
       .then(res => res.json())
       .then(data => {
         if (data && data.policyData) {
