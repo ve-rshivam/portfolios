@@ -380,11 +380,13 @@ app.post('/api/admin/forgot-password', authLimiter, async (req, res) => {
       subject: "Secure System Access - 6-Digit OTP",
       text: `Hello ${admin.name},\nYour security OTP for password reset is: ${otp}.\nValid for 10 mins. Attempts: ${admin.otpAttempts}/3 today.`
     });
-
-    res.json({ success: true, message: "OTP sent to your email!" });
+res.json({ success: true, message: "OTP sent to your email!" });
     console.timeEnd("⏱️ API Time");
-   console.log("🔥 This Error:", error);
-      res.status(500).json({ success: false, message: "Failed to send OTP email. Please check server settings." }); 
+
+  } catch (error) { 
+   
+    console.log("🔥 ASLI ERROR:", error);
+    res.status(500).json({ success: false, message: "Failed to send OTP email. Please check server settings." }); 
   }
 });
 
