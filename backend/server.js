@@ -381,6 +381,7 @@ app.post('/api/admin/forgot-password', authLimiter, async (req, res) => {
     });
 
     res.json({ success: true, message: "OTP sent to your email!" });
+    console.timeEnd("⏱️ API Time");
   } catch (error) { 
       res.status(500).json({ success: false, message: "Failed to send OTP email. Please check server settings." }); 
   }
