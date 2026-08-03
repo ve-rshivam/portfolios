@@ -76,7 +76,7 @@ const Services = () => {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/services");
+        const res = await fetch("https://portfolio-px1j.onrender.com/api/services");
         const data = await res.json();
         
         const serverServices = Array.isArray(data) ? data : [];

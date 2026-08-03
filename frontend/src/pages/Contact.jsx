@@ -9,7 +9,7 @@ const Contact = () => {
 
   // Fetch CMS Content
   useEffect(() => {
-    fetch("http://localhost:5000/api/content")
+    fetch("https://portfolio-px1j.onrender.com/api/content")
       .then(res => res.json())
       .then(data => {
         if (data && data.contactData && Array.isArray(data.contactData)) {
@@ -66,7 +66,7 @@ const Contact = () => {
       });
 
       // 2. Database Me Save Karna (Admin Dashboard Inbox ke liye)
-      const response = await fetch("http://localhost:5000/api/messages", {
+      const response = await fetch("https://portfolio-px1j.onrender.com/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
