@@ -18,9 +18,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '.env') });
 
-// ==========================================
-// 🛡️ 0. FAANG-LEVEL ENVIRONMENT CHECK 🛡️
-// ==========================================
 const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET'];
 const missingVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 if (missingVars.length > 0) {
@@ -30,26 +27,23 @@ if (missingVars.length > 0) {
 
 const app = express();
 
-// ==========================================
-// 🛡️ 1. CONFIGURATION & MISCONFIGURATION FIXES 🛡️
-// ==========================================
 app.use(helmet()); 
 app.use(mongoSanitize());
 
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
-  process.env.FRONTEND_URL, // Set this in your Render/hosting env vars to your Vercel domain
+  process.env.FRONTEND_URL, 
 ].filter(Boolean);
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    
     if (!origin) return callback(null, true);
     if (allowedOrigins.some(allowed => origin === allowed || origin.endsWith('.vercel.app'))) {
       callback(null, true);
     } else {
-      callback(null, true); // Allow all for now — tighten in production later
+      callback(null, true); 
     }
   },
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
@@ -63,9 +57,6 @@ app.get('/ping', (req, res) => {
     res.status(200).send('Server is healthy and alive!');
 });
 
-// ==========================================
-// 🛡️ 2. RATE LIMITING (Global & Auth) 
-// ==========================================
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
   max: 5000, 
@@ -79,9 +70,6 @@ const authLimiter = rateLimit({
   message: { success: false, message: "Too many authentication attempts. Locked for 1 hour." }
 });
 
-// ==========================================
-// 🛡️ 3. BROKEN ACCESS CONTROL (JWT Middleware) 🛡️
-// ==========================================
 const verifyAdminToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -98,7 +86,7 @@ const verifyAdminToken = (req, res, next) => {
   }
 };
 
-// 🔥 NEVER TRUST FRONTEND: Role-Based Access Control (RBAC) Middleware 🔥
+
 const checkPerm = (validSections) => (req, res, next) => {
   if (req.admin.role === 'superadmin') return next();
   
@@ -109,17 +97,10 @@ const checkPerm = (validSections) => (req, res, next) => {
   return res.status(403).json({ success: false, message: `Access Denied. Requires one of: ${validSections.join(', ')}` });
 };
 
-// ==========================================
-// 4. MONGODB CONNECTION
-// ==========================================
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ Cloud MongoDB Connected Successfully'))
   .catch(err => console.log('❌ MongoDB Connection Error:', err));
 
-
-// ==========================================
-// 📧 NODEMAILER GLOBAL TRANSPORTERS
-// ==========================================
 const adminTransporter = nodemailer.createTransport({
   host: 'smtp.gmail.com', 
   port: 465, 
@@ -151,9 +132,6 @@ const teamTransporter = nodemailer.createTransport({
 });
 
 
-// ==========================================
-// 5. DATABASE SCHEMAS & MODELS
-// ==========================================
 const messageSchema = new mongoose.Schema({
   name: { type: String, trim: true, maxLength: 100 }, 
   email: { type: String, trim: true },
@@ -162,7 +140,8 @@ const messageSchema = new mongoose.Schema({
   type: { type: String, default: 'contact' },
   transaction_id: { type: String, trim: true },
   attachment: String,
-  projectId: { type: String, trim: true }, // Added for remaining payments tracking
+  projectId: { type: String, trim: true },
+  
   date: { type: Date, default: Date.now }
 });
 const Message = mongoose.model('Message', messageSchema);
@@ -225,7 +204,8 @@ const projectSchema = new mongoose.Schema({
   notes: String,
   isTemporaryKey: { type: Boolean, default: false }, 
   
-  // 🔥 NEW FIELDS FOR SMART PAYMENT & MULTI-PROJECT
+
+  
   totalCost: { type: Number, default: 0 },
   amountPaid: { type: Number, default: 0 },
   balanceDue: { type: Number, default: 0 },
@@ -235,23 +215,25 @@ const projectSchema = new mongoose.Schema({
 });
 const ClientProject = mongoose.model('ClientProject', projectSchema);
 
-// 🔥 NEW SCHEMA: FOR ADMIN SELECTED GITHUB PROJECTS 🔥
+
+
 const pinnedProjectSchema = new mongoose.Schema({
-  repoId: { type: String, required: true, unique: true }, // GitHub Repo ID
+  repoId: { type: String, required: true, unique: true }, 
+  
   name: String,
   description: String,
   html_url: String,
-  techStack: { type: String, default: '' },   // e.g. "HTML, CSS, JavaScript, Bootstrap"
-  dateRange: { type: String, default: '' },    // e.g. "May 2025 – July 2025"
+  techStack: { type: String, default: '' },   
+  dateRange: { type: String, default: '' },    
   pinnedAt: { type: Date, default: Date.now }
 });
 const PinnedProject = mongoose.model('PinnedProject', pinnedProjectSchema);
 
 
-// --- ADMIN INITIALIZATION (PRO LEVEL: SECRETS FROM .ENV ONLY) ---
+
 const createDefaultAdmin = async () => {
   try {
-    // Pure ENV Call: No hardcoded fallback strings to expose
+    
     const defaultEmail = process.env.ADMIN_DEFAULT_EMAIL;
     const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD;
     const defaultPin = process.env.ADMIN_DEFAULT_PIN;
@@ -264,7 +246,7 @@ const createDefaultAdmin = async () => {
     const adminExists = await AdminUser.findOne({ identifier: defaultEmail });
 
     if (!adminExists) {
-      const salt = await bcrypt.genSalt(14);
+      const salt = await bcrypt.genSalt(10);
       // Directly hash the ENV values
       const hashedPassword = await bcrypt.hash(defaultPassword, salt);
       const hashedPin = await bcrypt.hash(defaultPin, salt); 
@@ -288,7 +270,7 @@ const createDefaultAdmin = async () => {
       }
       
       if (!adminExists.twoFactorPin.startsWith('$2a$')) {
-        const salt = await bcrypt.genSalt(14);
+        const salt = await bcrypt.genSalt(10);
         adminExists.twoFactorPin = await bcrypt.hash(defaultPin, salt);
         updated = true;
       }
@@ -307,9 +289,6 @@ const createDefaultAdmin = async () => {
 createDefaultAdmin();
 
 
-// ==========================================
-// 6. SECURE ADMIN AUTHENTICATION APIs
-// ==========================================
 app.post('/api/admin/login', authLimiter, async (req, res) => {
   try {
     const { identifier, password } = req.body;
@@ -349,7 +328,7 @@ app.post('/api/admin/update-security', verifyAdminToken, async (req, res) => {
     const isMatch = await bcrypt.compare(oldPassword, admin.password);
     if (!isMatch) return res.status(401).json({ success: false, message: "Incorrect Current Password!" });
 
-    const salt = await bcrypt.genSalt(14);
+    const salt = await bcrypt.genSalt(10);
     
     if (newPassword) admin.password = await bcrypt.hash(newPassword, salt);
     if (newPin) {
@@ -388,7 +367,7 @@ app.post('/api/admin/forgot-password', authLimiter, async (req, res) => {
     admin.otpLastAttempt = Date.now();
     await admin.save();
 
-    // 🔥 FIX 4: SUPERADMIN GETS RESET OTP FROM THEIR OWN SECURE ID 🔥
+
     const activeTransporter = admin.role === 'superadmin' ? adminTransporter : teamTransporter;
     const fromEmail = admin.role === 'superadmin' 
         ? process.env.ADMIN_EMAIL_USER || process.env.EMAIL_USER 
@@ -403,11 +382,11 @@ app.post('/api/admin/forgot-password', authLimiter, async (req, res) => {
 
     res.json({ success: true, message: "OTP sent to your email!" });
   } catch (error) { 
-      res.json({ success: true, message: "Email failed, but testing OTP generated!", devOtp: otp }); 
+      res.status(500).json({ success: false, message: "Failed to send OTP email. Please check server settings." }); 
   }
 });
 
-app.post('/api/admin/reset-password', async (req, res) => {
+app.post('/api/admin/reset-password', authLimiter, async (req, res) => {
   try {
     const { identifier, otp, newPassword } = req.body;
     if(newPassword.length < 8) return res.status(400).json({success: false, message: "Password must be at least 8 chars"});
@@ -417,7 +396,7 @@ app.post('/api/admin/reset-password', async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
     }
 
-    const salt = await bcrypt.genSalt(14);
+    const salt = await bcrypt.genSalt(10);
     admin.password = await bcrypt.hash(newPassword, salt);
     admin.resetOtp = ''; 
     admin.otpAttempts = 0; 
@@ -545,7 +524,7 @@ app.post('/api/payment/razorpay-order', async (req, res) => {
             if (amount && amount >= (dbPrice * 0.40)) {
                 numericPrice = parseInt(amount, 10); // Safe partial amount
             } else {
-                numericPrice = dbPrice; // Fallback to full DB price
+                numericPrice = dbPrice; 
             }
         }
     } else if (amount) {
@@ -574,12 +553,12 @@ app.post('/api/payment/razorpay-order', async (req, res) => {
 });
 
 
-// 🔥 AUTOMATED GATEWAY SUCCESS API 🔥
+
 app.post('/api/payment/gateway-success', async (req, res) => {
   try {
     const { name, email, serviceName, transactionId, gateway, razorpay_order_id, razorpay_payment_id, razorpay_signature, amountPaid, totalAmount, projectId, isRemainingPayment } = req.body;
     
-    // 🛡️ ZERO-TRUST: Verify Gateway Signature 
+  
     if (gateway === 'razorpay') {
       if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
          return res.status(400).json({ success: false, message: "Missing Razorpay verification parameters." });
@@ -598,11 +577,9 @@ app.post('/api/payment/gateway-success', async (req, res) => {
       return res.status(400).json({ success: false, message: "Unknown or missing payment gateway provider." });
     }
 
-    // ==========================================
-    // MULTI-PROJECT & REMAINING PAYMENT LOGIC
-    // ==========================================
+
     if (isRemainingPayment && projectId) {
-        // SCENARIO 1: Client is paying remaining balance for an existing project
+       
         const project = await ClientProject.findById(projectId);
         if (!project) return res.status(404).json({ success: false, message: "Project not found" });
 
@@ -632,9 +609,7 @@ app.post('/api/payment/gateway-success', async (req, res) => {
         return res.json({ success: true, message: "Remaining balance updated" });
 
     } else {
-        // SCENARIO 2: Creating a completely new project
-        
-        // Smart Key Sync: If user has other projects, copy their password so they don't have to manage multiple keys.
+
         let hashedKey = "";
         let rawAccessKey = "";
         
@@ -644,7 +619,7 @@ app.post('/api/payment/gateway-success', async (req, res) => {
             rawAccessKey = "Same as your existing Portal Access Key"; 
         } else {
             rawAccessKey = crypto.randomBytes(6).toString('hex').toUpperCase();
-            const salt = await bcrypt.genSalt(14);
+            const salt = await bcrypt.genSalt(10);
             hashedKey = await bcrypt.hash(rawAccessKey, salt);
         }
 
@@ -698,7 +673,7 @@ app.post('/api/payment/gateway-success', async (req, res) => {
 
 app.post('/api/reviews', async (req, res) => {
   try {
-    // 🛡️ ZERO-TRUST: Explicitly extract only allowed fields, ignoring admin fields
+
     const { name, role, rating, text } = req.body;
     const newReview = new Review({ name, role, rating, text });
     await newReview.save();
@@ -719,7 +694,6 @@ app.get('/api/reviews', async (req, res) => {
   catch (err) { res.status(500).json({ message: "Error" }); }
 });
 
-// 🔥 FIX: Added Missing GET /api/skill API for Admin Panel 🔥
 app.get('/api/skill', async (req, res) => {
   try { res.json(await Skill.find()); } 
   catch (err) { res.status(500).json({ error: "Failed" }); }
@@ -730,7 +704,6 @@ app.get('/api/services', async (req, res) => {
   catch (err) { res.status(500).json({ error: "Failed" }); }
 });
 
-// 🔥 GET Pinned Projects (Public API for Home/Resume)
 app.get('/api/pinned-projects', async (req, res) => {
   try { res.json(await PinnedProject.find().sort({ pinnedAt: -1 })); } 
   catch (err) { res.status(500).json({ message: "Error" }); }
@@ -745,18 +718,15 @@ app.get('/api/resume-data', async (req, res) => {
   } catch (err) { res.status(500).json({ message: "Error fetching resume data" }); }
 });
 
-// ==========================================
-// 🔥 SECURE CLIENT PORTAL APIs (Multi-Project Upgraded) 🔥
-// ==========================================
-app.post('/api/client/login', async (req, res) => {
+app.post('/api/client/login', authLimiter, async (req, res) => {
   try {
     const { email, accessKey } = req.body;
 
-    // Feature 2: Find ALL projects for this email
+
     const projects = await ClientProject.find({ clientEmail: email }).sort({ _id: -1 });
     if (!projects || projects.length === 0) return res.status(404).json({ success: false, message: "Email not found." });
 
-    // Multi-Project Key Validation: Client can login if the provided key matches ANY of their projects' keys
+  
     let isValid = false;
     for (let proj of projects) {
         if (await bcrypt.compare(accessKey, proj.hashedAccessKey)) {
@@ -767,7 +737,7 @@ app.post('/api/client/login', async (req, res) => {
 
     if (!isValid) return res.status(401).json({ success: false, message: "Invalid Access Key." });
 
-    // Send array of securely mapped projects to frontend
+  
     const mappedProjects = projects.map(p => ({
         _id:            p._id, 
         clientName:     p.clientName,
@@ -787,7 +757,7 @@ app.post('/api/client/login', async (req, res) => {
 
     return res.json({
       success: true,
-      projects: mappedProjects // Updated from `project: {...}` to `projects: [...]`
+      projects: mappedProjects
     });
 
   } catch (err) {
@@ -799,18 +769,18 @@ app.post('/api/client/change-password', async (req, res) => {
   try {
     const { email, oldKey, newKey } = req.body;
 
-    // Feature 2: Update all projects for this email at once
+
     const projects = await ClientProject.find({ clientEmail: email });
     if (!projects || projects.length === 0) return res.status(404).json({ success: false, message: "Projects not found." });
 
-    // Verify old key against the first matched project (since they all share the same key sync)
+  
     const isMatch = await bcrypt.compare(oldKey, projects[0].hashedAccessKey);
     if (!isMatch) return res.status(401).json({ success: false, message: "Incorrect current Access Key." });
 
-    const salt = await bcrypt.genSalt(14);
+    const salt = await bcrypt.genSalt(10);
     const hashedNewKey = await bcrypt.hash(newKey, salt);
 
-    // Apply new key to ALL projects associated with this email
+  
     await ClientProject.updateMany(
       { clientEmail: email }, 
       { $set: { hashedAccessKey: hashedNewKey, isTemporaryKey: false } }
@@ -822,14 +792,13 @@ app.post('/api/client/change-password', async (req, res) => {
   }
 });
 
-app.post('/api/client/forgot-password', async (req, res) => {
+app.post('/api/client/forgot-password', authLimiter, async (req, res) => {
   try {
     const { email } = req.body;
-    // Multi-Project check
+  
     const projects = await ClientProject.find({ clientEmail: email });
     if (!projects || projects.length === 0) return res.status(404).json({ success: false, message: "Yeh email registered nahi hai." });
 
-    // Check 24-hour limit on the first project's timestamp to prevent spam
     if (projects[0].lastPasswordReset) {
       const timeSinceLastReset = Date.now() - new Date(projects[0].lastPasswordReset).getTime();
       if (timeSinceLastReset < 24 * 60 * 60 * 1000) {
@@ -838,10 +807,10 @@ app.post('/api/client/forgot-password', async (req, res) => {
     }
 
     const tempPassword = "KEY-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-    const salt = await bcrypt.genSalt(14);
+    const salt = await bcrypt.genSalt(10);
     const hashedTemp = await bcrypt.hash(tempPassword, salt);
     
-    // Update ALL projects with temporary key
+
     await ClientProject.updateMany(
       { clientEmail: email }, 
       { $set: { hashedAccessKey: hashedTemp, isTemporaryKey: true, lastPasswordReset: Date.now() } }
@@ -879,7 +848,7 @@ app.post('/api/client/forgot-password', async (req, res) => {
 });
 
 app.post('/api/client/get-projects', async (req, res) => {
-  // Notice route changed from get-project to get-projects
+
   try {
     const { email } = req.body;
     const projects = await ClientProject.find({ clientEmail: email }).sort({ _id: -1 });
@@ -912,7 +881,7 @@ app.post('/api/client/get-projects', async (req, res) => {
   }
 });
 
-// 🔥 CLIENT TO ADMIN MESSAGING API 🔥
+
 app.post('/api/client/send-message', async (req, res) => {
   try {
     const { email, projectId, message } = req.body;
@@ -921,33 +890,33 @@ app.post('/api/client/send-message', async (req, res) => {
       return res.status(400).json({ success: false, message: "Project ID and Message are required." });
     }
 
-    // 1. DB se project dhundho taaki client ka original naam mil sake (Security)
+    
     const project = await ClientProject.findById(projectId);
     if (!project) return res.status(404).json({ success: false, message: "Project not found" });
 
-    // 2. Message ko Database me save karo (Admin Inbox me dikhane ke liye)
+   
     const newMessage = new Message({
       name: project.clientName,
       email: project.clientEmail,
       message: `[Reply from Project: ${project.projectTitle}]\n\n${message}`,
-      type: 'contact', // type 'contact' hone se ye seedha Admin ke Inbox me jayega
+      type: 'contact', 
       date: Date.now()
     });
     await newMessage.save();
 
-    // 3. Admin ko Email Alert bhejo
+
     try {
-      // 1. Dono Admins ke emails define karein (Ensure ye .env me added hain)
+
       const adminEmails = [
         process.env.SUPER_ADMIN_EMAIL, 
         process.env.ADMIN_EMAIL
-      ].filter(Boolean).join(', '); // .filter(Boolean) empty/undefined emails ko hata dega
+      ].filter(Boolean).join(', '); 
 
       await adminTransporter.sendMail({
-        // 2. SENDER ab strictly TEAM EMAIL hoga
+       
         from: `"Client Portal Alert" <${process.env.TEAM_EMAIL_USER}>`, 
         
-        // 3. RECIPIENT mein dono admins jayenge
+  
         to: adminEmails || process.env.TEAM_EMAIL_USER, 
         
         subject: `📩 Portal Reply: ${project.clientName} (${project.projectTitle})`,
@@ -977,11 +946,6 @@ app.post('/api/client/send-message', async (req, res) => {
 });
 
 
-// ==========================================
-// 8. 🛡️ PROTECTED ADMIN APIs (WITH RBAC) 🛡️
-// ==========================================
-
-// 🔥 NEW: Toggle GitHub Project Pin Status 🔥
 app.post('/api/pinned-projects', verifyAdminToken, checkPerm(['cms']), async (req, res) => {
   try {
     const { repoId, name, description, html_url, techStack, dateRange } = req.body;
@@ -999,7 +963,6 @@ app.post('/api/pinned-projects', verifyAdminToken, checkPerm(['cms']), async (re
   }
 });
 
-// 🔥 UPDATE Pinned Project Resume Details (techStack, dateRange, description) 🔥
 app.put('/api/pinned-projects/:id', verifyAdminToken, checkPerm(['cms']), async (req, res) => {
   try {
     const { techStack, dateRange, description } = req.body;
@@ -1017,7 +980,6 @@ app.put('/api/pinned-projects/:id', verifyAdminToken, checkPerm(['cms']), async 
   }
 });
 
-// 🔥 🆕 TEAM MANAGEMENT APIs (Superadmin ONLY) 🆕 🔥
 app.get('/api/admin/team', verifyAdminToken, checkPerm(['team']), async (req, res) => {
   if (req.admin.role !== 'superadmin') return res.status(403).json({ success: false, message: "Superadmin only." });
   try {
@@ -1040,7 +1002,7 @@ app.post('/api/admin/team', verifyAdminToken, async (req, res) => {
     } else {
       const rawPassword = crypto.randomBytes(4).toString('hex'); 
       const rawPin = Math.floor(1000 + Math.random() * 9000).toString(); 
-      const salt = await bcrypt.genSalt(14);
+      const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(rawPassword, salt);
       const hashedPin = await bcrypt.hash(rawPin, salt);
       
@@ -1071,7 +1033,6 @@ app.delete('/api/admin/team/:id', verifyAdminToken, async (req, res) => {
 });
 
 
-// 🔥 PROTECTED APIs WRAPPED WITH PERMISSION CHECKS 🔥
 app.get('/api/messages', verifyAdminToken, checkPerm(['messages', 'payments']), async (req, res) => {
   try { res.json(await Message.find().sort({ date: -1 })); } 
   catch (err) { res.status(500).json({ message: "Error" }); }
@@ -1152,7 +1113,7 @@ app.put('/api/services/:id', verifyAdminToken, checkPerm(['services']), async (r
   }
 });
 
-// 🔥 EDUCATION APIs
+
 app.post('/api/education', verifyAdminToken, checkPerm(['skills']), async (req, res) => {
   try {
     const { degree, institution, duration, score, description } = req.body;
@@ -1166,7 +1127,7 @@ app.delete('/api/education/:id', verifyAdminToken, checkPerm(['skills']), async 
   try { await Education.findByIdAndDelete(req.params.id); res.json({ success: true }); } 
   catch (err) { res.status(500).json({ success: false }); }
 });
-// 🔥 EXPERIENCE APIs
+
 app.post('/api/experience', verifyAdminToken, checkPerm(['skills']), async (req, res) => {
   try {
     const { role, company, duration, description } = req.body;
@@ -1204,7 +1165,7 @@ app.get('/api/client-projects', verifyAdminToken, checkPerm(['projects', 'paymen
 app.post('/api/client-projects', verifyAdminToken, checkPerm(['projects']), async (req, res) => {
   try {
     req.body.lastUpdated = Date.now();
-    // Multi-Project check: Ensure manual backend edits also sync logic
+    
     if (req.body.amountPaid && req.body.totalCost) {
         req.body.balanceDue = req.body.totalCost - req.body.amountPaid;
         if (req.body.balanceDue < 0) req.body.balanceDue = 0;
@@ -1232,12 +1193,12 @@ app.post('/api/client-projects/:id/message', verifyAdminToken, checkPerm(['proje
     const project = await ClientProject.findById(req.params.id);
     if(!project) return res.status(404).json({ success: false, message: "Project not found" });
     
-    // 🔥 FIX 1: Database mein message update karo taaki Client Portal par dikhe
+   
     project.notes = req.body.message;
     project.lastUpdated = Date.now();
     await project.save();
 
-    // 🔥 FIX 2: Email bhi bhejo (Sath mein)
+   
     try {
       await clientTransporter.sendMail({
         from: `"Shivam Web Studio" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
@@ -1268,16 +1229,16 @@ app.post('/api/admin/verify-client-payment/:id', verifyAdminToken, checkPerm(['p
     const project = await ClientProject.findById(req.params.id);
     if(!project) return res.status(404).json({ success: false, message: "Project not found" });
 
-    // Multi-Project Key Sync logic for admin manual verify
+    
     let rawAccessKey = "Same as existing Access Key";
     
     const otherProjects = await ClientProject.find({ clientEmail: project.clientEmail, _id: { $ne: project._id } });
     if (otherProjects && otherProjects.length > 0) {
-        // Sync with existing
+        
         project.hashedAccessKey = otherProjects[0].hashedAccessKey;
     } else {
         rawAccessKey = crypto.randomBytes(6).toString('hex').toUpperCase();
-        const salt = await bcrypt.genSalt(14);
+        const salt = await bcrypt.genSalt(10);
         project.hashedAccessKey = await bcrypt.hash(rawAccessKey, salt);
     }
 
@@ -1310,12 +1271,12 @@ app.post('/api/admin/approve-payment-message/:msgId', verifyAdminToken, checkPer
 
     const customPaymentStatus = req.body.paymentStatus || 'Fully Paid';
 
-    // REMAINING BALANCE MANUAL APPROVAL LOGIC
+  
     if (msg.projectId) {
         const project = await ClientProject.findById(msg.projectId);
         if (project) {
             project.paymentStatus = customPaymentStatus;
-            project.balanceDue = 0; // Assume fully paid if admin approves
+            project.balanceDue = 0;
             await project.save();
             await Message.findByIdAndDelete(req.params.msgId);
             
@@ -1332,7 +1293,7 @@ app.post('/api/admin/approve-payment-message/:msgId', verifyAdminToken, checkPer
         }
     }
 
-    // MULTI-PROJECT SYNC FOR NEW PROJECT APPROVAL
+   
     let rawAccessKey = "Same as existing Access Key";
     let hashedKey = "";
     
@@ -1341,7 +1302,7 @@ app.post('/api/admin/approve-payment-message/:msgId', verifyAdminToken, checkPer
         hashedKey = existingProject.hashedAccessKey;
     } else {
         rawAccessKey = crypto.randomBytes(6).toString('hex').toUpperCase();
-        const salt = await bcrypt.genSalt(14);
+        const salt = await bcrypt.genSalt(10);
         hashedKey = await bcrypt.hash(rawAccessKey, salt);
     }
 
@@ -1420,9 +1381,6 @@ app.post('/api/admin/reject-payment-message/:msgId', verifyAdminToken, checkPerm
 });
 
 
-// ==========================================
-// 9. AI & EXTERNAL APIs
-// ==========================================
 app.post('/api/chat', async (req, res) => {
   try {
     const { message } = req.body;
@@ -1451,6 +1409,6 @@ app.get('/api/linkedin-skills', async (req, res) => {
   } catch (error) { res.status(200).json([]); }
 });
 
-// START SERVER
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => { console.log(`🚀 Server running on port ${PORT}`); });
