@@ -59,6 +59,9 @@ app.use(cors(corsOptions));
 
 app.use(express.json({ limit: '50mb' })); 
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.get('/ping', (req, res) => {
+    res.status(200).send('Server is healthy and alive!');
+});
 
 // ==========================================
 // 🛡️ 2. RATE LIMITING (Global & Auth) 
