@@ -118,16 +118,27 @@ const About = () => {
               </motion.div>
 
               {/* Bio Paragraphs & Button */}
-              <div style={{ flex: 1, minWidth: '250px' }}>
-                <p style={{ color: themeColors.textDim, lineHeight: '1.8', fontSize: '16px', margin: '0 0 20px 0' }}>
-                  Hi! I'm <strong style={{ color: themeColors.textMain }}>Shivam Kumar</strong>, a CS student on a journey to master the art of programming. I'm currently focused on building strong fundamentals in <strong style={{ color: themeColors.accent }}>Data Structures & Algorithms</strong> using C++ and Python.
-                </p>
-                <p style={{ color: themeColors.textDim, lineHeight: '1.8', fontSize: '16px', margin: '0 0 20px 0' }}>
-                  Beyond algorithms, I am deeply interested in real-world engineering challenges, such as the integration of solar photovoltaic systems with electric vehicle charging infrastructure. Whether it's optimizing a graph traversal or architecting sustainable tech solutions, I love breaking down complex problems into elegant solutions.
-                </p>
-                <p style={{ color: themeColors.textDim, lineHeight: '1.8', fontSize: '16px', margin: '0' }}>
-                  Proud member of the <strong style={{ color: themeColors.textMain }}>GitHub Developer Program</strong> and <strong style={{ color: themeColors.textMain }}>Google Developer Club</strong>.
-                </p>
+<div style={{ flex: 1, minWidth: '250px' }}>
+  <p style={{ color: themeColors.textDim, lineHeight: '1.8', fontSize: '16px', margin: '0 0 20px 0' }}>
+    <strong style={{ color: themeColors.textMain, display: 'block', marginBottom: '4px' }}>The Intersection of Creativity and Code</strong>
+    Hello! I am <strong style={{ color: themeColors.textMain }}>Shivam Kumar</strong>, an 18-year-old B.Tech Computer Science and Engineering student at Gurukula Kangri Vishwavidyalaya. I approach technology not just as a developer, but as a creative thinker. For me, computer science is a canvas where complex algorithms and innovative ideas come together to solve real-world problems.
+  </p>
+
+  <p style={{ color: themeColors.textDim, lineHeight: '1.8', fontSize: '16px', margin: '0 0 20px 0' }}>
+    <strong style={{ color: themeColors.textMain, display: 'block', marginBottom: '4px' }}>Driven by Artificial Intelligence</strong>
+    My primary technical focus is on <strong style={{ color: themeColors.accent }}>Artificial Intelligence and Machine Learning</strong>. I am currently diving deep into the AI/ML ecosystem, building the foundational skills needed to train intelligent models and develop smart, scalable applications. While my foundational learning spans various aspects of development, my true ambition lies in shaping the future of AI and discovering how machines can learn, adapt, and drive meaningful innovation.
+  </p>
+
+  <p style={{ color: themeColors.textDim, lineHeight: '1.8', fontSize: '16px', margin: '0 0 20px 0' }}>
+    <strong style={{ color: themeColors.textMain, display: 'block', marginBottom: '4px' }}>Community, Leadership & Open Source</strong>
+    Beyond writing code, I am deeply committed to growing alongside the global tech ecosystem. I actively bridge the gap between industry-leading platforms and student developers through my roles as a <strong style={{ color: themeColors.textMain }}>Google Student Ambassador</strong> and a <strong style={{ color: themeColors.textMain }}>Microsoft Learn Student Ambassador</strong>. Furthermore, my active memberships in the <strong style={{ color: themeColors.textMain }}>Google Developer Club</strong> and the <strong style={{ color: themeColors.textMain }}>GitHub Developer Program</strong> keep me grounded in collaborative, community-driven development. Whether I am contributing to open-source projects, organizing community initiatives, or sharing knowledge with peers, I thrive in environments that foster technological growth and teamwork.
+  </p>
+
+  <p style={{ color: themeColors.textDim, lineHeight: '1.8', fontSize: '16px', margin: '0' }}>
+    <strong style={{ color: themeColors.textMain, display: 'block', marginBottom: '4px' }}>Looking Ahead</strong>
+    I am constantly experimenting, exploring new AI frameworks, and looking for my next big challenge. Whether I am architecting a new machine learning model, representing major tech communities, or brainstorming my next project, I am driven by a singular goal: to build impactful technology that makes a difference.
+  </p>
+
 
                 {/* --- Added Contact Button --- */}
                 <motion.button 
@@ -154,10 +165,10 @@ const About = () => {
           </motion.div>
         </div>
 
-        {/* ================= RIGHT SIDE: Terminal & 3D Canvas ================= */}
+        
         <div style={{ flex: 1, minWidth: '320px', display: 'flex', flexDirection: 'column', gap: '40px', perspective: '2000px' }}>
           
-          {/* MERN/React Styled Terminal UI with 3D Tilt Hover */}
+          
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -244,7 +255,7 @@ const About = () => {
         </div>
       </div>
 
-      {/* 🔥 यहाँ Education Component को जोड़ा गया है 🔥 */}
+      
       <div style={{ width: '100%', marginTop: '100px', zIndex: 10 }}>
         <Education />
       </div>
