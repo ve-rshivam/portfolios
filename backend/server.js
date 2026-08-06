@@ -106,36 +106,45 @@ mongoose.connect(process.env.MONGO_URI, { family: 4 })
   .catch(err => console.log('❌ MongoDB Connection Error:', err));
 
 const adminTransporter = nodemailer.createTransport({
-  service: 'gmail',
+  
   host: 'smtp.gmail.com', 
-  port: 465, 
-  secure: true,
+  port: 587, 
+  secure: false,
   auth: { 
     user: process.env.ADMIN_EMAIL_USER || process.env.EMAIL_USER, 
     pass: process.env.ADMIN_EMAIL_PASS || process.env.EMAIL_PASS 
-  }
+  },
+    tls: {
+        rejectUnauthorized: false 
+    }
 });
 
 const clientTransporter = nodemailer.createTransport({
-  service: 'gmail',
+  
   host: 'smtp.gmail.com', 
-  port: 465, 
-  secure: true,
+  port: 587, 
+  secure: false,
   auth: { 
     user: process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER, 
     pass: process.env.CLIENT_EMAIL_PASS || process.env.EMAIL_PASS 
-  }
+  },
+    tls: {
+        rejectUnauthorized: false 
+    }
 });
 
 const teamTransporter = nodemailer.createTransport({
-  service: 'gmail',
+
   host: 'smtp.gmail.com', 
-  port: 465, 
-  secure: true,
+  port: 587, 
+  secure: false,
   auth: { 
     user: process.env.TEAM_EMAIL_USER || process.env.EMAIL_USER, 
     pass: process.env.TEAM_EMAIL_PASS || process.env.EMAIL_PASS 
-  }
+  },
+    tls: {
+        rejectUnauthorized: false 
+    }
 });
 
 
