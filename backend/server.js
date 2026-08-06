@@ -1,3 +1,8 @@
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+
+const express = require('express'); 
+const mongoose = require('mongoose');
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
