@@ -5,7 +5,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import bcrypt from 'bcryptjs';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
@@ -73,6 +73,7 @@ app.use('/api/', globalLimiter);
 const authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, 
   max: 5000, 
+  skipFailedRequests: true, // NAYA UPDATE: Agar server error (500) aata hai, toh attempt count nahi hoga
   message: { success: false, message: "Too many authentication attempts. Locked for 1 hour." }
 });
 
@@ -107,48 +108,13 @@ mongoose.connect(process.env.MONGO_URI, { family: 4 })
   .then(() => console.log('✅ Cloud MongoDB Connected Successfully'))
   .catch(err => console.log('❌ MongoDB Connection Error:', err));
 
-const adminTransporter = nodemailer.createTransport({
-  
-  host: 'smtp.gmail.com', 
-  port: 587, 
-  secure: false,
-  auth: { 
-    user: process.env.ADMIN_EMAIL_USER || process.env.EMAIL_USER, 
-    pass: process.env.ADMIN_EMAIL_PASS || process.env.EMAIL_PASS 
-  },
-    tls: {
-        rejectUnauthorized: false 
-    }
-});
+// 3 ALAG RESEND SETUP (Tumhari request ke according)
+const adminResend = new Resend(process.env.RESEND_API_KEY_ADMIN);
+const clientResend = new Resend(process.env.RESEND_API_KEY_CLIENT);
+const teamResend = new Resend(process.env.RESEND_API_KEY_TEAM);
 
-const clientTransporter = nodemailer.createTransport({
-  
-  host: 'smtp.gmail.com', 
-  port: 587, 
-  secure: false,
-  auth: { 
-    user: process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER, 
-    pass: process.env.CLIENT_EMAIL_PASS || process.env.EMAIL_PASS 
-  },
-    tls: {
-        rejectUnauthorized: false 
-    }
-});
-
-const teamTransporter = nodemailer.createTransport({
-
-  host: 'smtp.gmail.com', 
-  port: 587, 
-  secure: false,
-  auth: { 
-    user: process.env.TEAM_EMAIL_USER || process.env.EMAIL_USER, 
-    pass: process.env.TEAM_EMAIL_PASS || process.env.EMAIL_PASS 
-  },
-    tls: {
-        rejectUnauthorized: false 
-    }
-});
-
+// Testing email since custom domain is missing
+const senderEmail = 'onboarding@resend.dev';
 
 const messageSchema = new mongoose.Schema({
   name: { type: String, trim: true, maxLength: 100 }, 
@@ -222,8 +188,6 @@ const projectSchema = new mongoose.Schema({
   notes: String,
   isTemporaryKey: { type: Boolean, default: false }, 
   
-
-  
   totalCost: { type: Number, default: 0 },
   amountPaid: { type: Number, default: 0 },
   balanceDue: { type: Number, default: 0 },
@@ -232,8 +196,6 @@ const projectSchema = new mongoose.Schema({
   lastUpdated: { type: Date, default: Date.now }
 });
 const ClientProject = mongoose.model('ClientProject', projectSchema);
-
-
 
 const pinnedProjectSchema = new mongoose.Schema({
   repoId: { type: String, required: true, unique: true }, 
@@ -246,7 +208,6 @@ const pinnedProjectSchema = new mongoose.Schema({
   pinnedAt: { type: Date, default: Date.now }
 });
 const PinnedProject = mongoose.model('PinnedProject', pinnedProjectSchema);
-
 
 
 const createDefaultAdmin = async () => {
@@ -385,23 +346,19 @@ app.post('/api/admin/forgot-password', authLimiter, async (req, res) => {
     admin.otpLastAttempt = Date.now();
     await admin.save();
 
+    const activeResend = admin.role === 'superadmin' ? adminResend : teamResend;
 
-    const activeTransporter = admin.role === 'superadmin' ? adminTransporter : teamTransporter;
-    const fromEmail = admin.role === 'superadmin' 
-        ? process.env.ADMIN_EMAIL_USER || process.env.EMAIL_USER 
-        : process.env.TEAM_EMAIL_USER || process.env.EMAIL_USER;
-
-    await activeTransporter.sendMail({
-      from: `"System Security" <${fromEmail}>`,
+    await activeResend.emails.send({
+      from: senderEmail,
       to: admin.identifier,
       subject: "Secure System Access - 6-Digit OTP",
       text: `Hello ${admin.name},\nYour security OTP for password reset is: ${otp}.\nValid for 10 mins. Attempts: ${admin.otpAttempts}/3 today.`
     });
-res.json({ success: true, message: "OTP sent to your email!" });
+    res.json({ success: true, message: "OTP sent to your email!" });
     console.timeEnd("⏱️ API Time");
 
   } catch (error) { 
-   
+    
     console.log("🔥 ASLI ERROR:", error);
     res.status(500).json({ success: false, message: "Failed to send OTP email. Please check server settings." }); 
   }
@@ -427,7 +384,6 @@ app.post('/api/admin/reset-password', authLimiter, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: "Server Error" }); }
 });
 
- 
 app.post('/api/messages', async (req, res) => {
   try {
     const { name, email, phone, message, type, transaction_id, attachment, projectId, isRemainingPayment, amountPaid } = req.body;
@@ -436,7 +392,6 @@ app.post('/api/messages', async (req, res) => {
       return res.status(400).json({success: false, message: "Incomplete payment details provided."});
     }
 
-    
     let finalMessage = message;
     if (isRemainingPayment) {
         finalMessage = `[REMAINING BALANCE PAYMENT] Claimed Amount: $${amountPaid}\n\n${message}`;
@@ -445,7 +400,6 @@ app.post('/api/messages', async (req, res) => {
     const newMessage = new Message({ name, email, phone, message: finalMessage, type, transaction_id, attachment, projectId });
     await newMessage.save();
 
-    
     if (type === 'payment') {
       try {
         const authorizedAdmins = await AdminUser.find({
@@ -454,7 +408,7 @@ app.post('/api/messages', async (req, res) => {
         
         for (const adminUser of authorizedAdmins) {
           const mailOptions = {
-            from: `"System Alert (Payments)" <${process.env.TEAM_EMAIL_USER || process.env.EMAIL_USER}>`, 
+            from: senderEmail, 
             to: adminUser.identifier, 
             subject: `💰 New Payment Received from ${name}`,
             html: `
@@ -466,7 +420,7 @@ app.post('/api/messages', async (req, res) => {
               <p>Please check your Admin Dashboard to verify the payment and generate an Access Key for the client.</p>
             `
           };
-          await teamTransporter.sendMail(mailOptions).catch(err => console.log(`Payment Mail Failed for ${adminUser.identifier}:`, err.message));
+          await teamResend.emails.send(mailOptions);
         }
       } catch (mailError) { console.log("Mail setup error:", mailError); }
       
@@ -479,9 +433,9 @@ app.post('/api/messages', async (req, res) => {
 
         for (const adminUser of authorizedAdmins) {
           const contactMailOptions = {
-            from: `"Website Contact Form" <${process.env.TEAM_EMAIL_USER || process.env.EMAIL_USER}>`, 
+            from: senderEmail, 
             to: adminUser.identifier, 
-            replyTo: email, 
+            reply_to: email, 
             subject: `📬 New Contact Inquiry from ${name}`,
             html: `
               <div style="font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; border-radius: 10px; border: 1px solid #ddd;">
@@ -499,7 +453,7 @@ app.post('/api/messages', async (req, res) => {
               </div>
             `
           };
-          await teamTransporter.sendMail(contactMailOptions).catch(err => console.log(`Contact Mail Failed for ${adminUser.identifier}:`, err.message));
+          await teamResend.emails.send(contactMailOptions);
         }
       } catch (mailError) { console.log("Contact Mail setup error:", mailError); }
     }
@@ -510,10 +464,9 @@ app.post('/api/messages', async (req, res) => {
   }
 });
 
- 
 app.post('/api/payment/razorpay-order', async (req, res) => {
   try {
-     
+      
     const { serviceId, amount, totalAmount, projectId, isRemainingPayment } = req.body; 
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
@@ -522,7 +475,6 @@ app.post('/api/payment/razorpay-order', async (req, res) => {
 
     let numericPrice = 100; 
     
-     
     if (isRemainingPayment && projectId) {
         
         const project = await ClientProject.findById(projectId);
@@ -534,7 +486,7 @@ app.post('/api/payment/razorpay-order', async (req, res) => {
         }
     }
     else if (serviceId && mongoose.Types.ObjectId.isValid(serviceId)) {
-         
+          
         const service = await Service.findById(serviceId);
         if (service && service.price) {
             const dbPrice = parseInt(service.price.replace(/\D/g, "")) || 100; 
@@ -570,13 +522,10 @@ app.post('/api/payment/razorpay-order', async (req, res) => {
   }
 });
 
-
-
 app.post('/api/payment/gateway-success', async (req, res) => {
   try {
     const { name, email, serviceName, transactionId, gateway, razorpay_order_id, razorpay_payment_id, razorpay_signature, amountPaid, totalAmount, projectId, isRemainingPayment } = req.body;
     
-  
     if (gateway === 'razorpay') {
       if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
          return res.status(400).json({ success: false, message: "Missing Razorpay verification parameters." });
@@ -595,9 +544,8 @@ app.post('/api/payment/gateway-success', async (req, res) => {
       return res.status(400).json({ success: false, message: "Unknown or missing payment gateway provider." });
     }
 
-
     if (isRemainingPayment && projectId) {
-       
+        
         const project = await ClientProject.findById(projectId);
         if (!project) return res.status(404).json({ success: false, message: "Project not found" });
 
@@ -616,11 +564,11 @@ app.post('/api/payment/gateway-success', async (req, res) => {
         await project.save();
 
         try {
-          await clientTransporter.sendMail({
-            from: `"Shivam Web Studio" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
+          await clientResend.emails.send({
+            from: senderEmail,
             to: email,
             subject: "🎉 Remaining Balance Received",
-            html: `<h3>Hi ${name},</h3><p>Your remaining payment of $${amountPaid} for <strong>${project.projectTitle}</strong> has been received successfully.</p><p>Project Payment Status: <b style="color:#00f5a0;">${project.paymentStatus}</b></p><p>Login to Portal: <a href="http://localhost:5173/portal">Client Portal</a></p>`
+            html: `<h3>Hi ${name},</h3><p>Your remaining payment of $${amountPaid} for <strong>${project.projectTitle}</strong> has been received successfully.</p><p>Project Payment Status: <b style="color:#00f5a0;">${project.paymentStatus}</b></p><p>Login to Portal: <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/portal">Client Portal</a></p><br><p><em>Forgot or want to change your Access Key? <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/portal">Click here to Reset Password</a></em></p>`
           });
         } catch(e) {}
 
@@ -667,15 +615,16 @@ app.post('/api/payment/gateway-success', async (req, res) => {
         await newProject.save();
 
         try {
-          await clientTransporter.sendMail({
-            from: `"Shivam Web Studio" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
+          await clientResend.emails.send({
+            from: senderEmail,
             to: email,
             subject: "🎉 Payment Verified - Portal Login Details",
             html: `<h3>Hi ${name},</h3>
                    <p>Your payment via gateway is verified.</p>
-                   <p>Login URL: <a href="http://localhost:5173/portal">Client Portal</a></p>
+                   <p>Login URL: <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/portal">Client Portal</a></p>
                    <p>Email: <b>${email}</b></p>
-                   <p>Access Key: <b style="color:#00e5ff; font-size:20px;">${rawAccessKey}</b></p>`
+                   <p>Access Key: <b style="color:#00e5ff; font-size:20px;">${rawAccessKey}</b></p>
+                   <br><p><em>Forgot or want to change your Access Key? <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/portal">Click here to Reset Password</a></em></p>`
           });
         } catch(mailErr) {
           console.log("Email sending failed, but project auto-created.");
@@ -688,10 +637,8 @@ app.post('/api/payment/gateway-success', async (req, res) => {
   }
 });
 
-
 app.post('/api/reviews', async (req, res) => {
   try {
-
     const { name, role, rating, text } = req.body;
     const newReview = new Review({ name, role, rating, text });
     await newReview.save();
@@ -740,7 +687,6 @@ app.post('/api/client/login', authLimiter, async (req, res) => {
   try {
     const { email, accessKey } = req.body;
 
-
     const projects = await ClientProject.find({ clientEmail: email }).sort({ _id: -1 });
     if (!projects || projects.length === 0) return res.status(404).json({ success: false, message: "Email not found." });
 
@@ -786,7 +732,6 @@ app.post('/api/client/login', authLimiter, async (req, res) => {
 app.post('/api/client/change-password', async (req, res) => {
   try {
     const { email, oldKey, newKey } = req.body;
-
 
     const projects = await ClientProject.find({ clientEmail: email });
     if (!projects || projects.length === 0) return res.status(404).json({ success: false, message: "Projects not found." });
@@ -835,8 +780,8 @@ app.post('/api/client/forgot-password', authLimiter, async (req, res) => {
     );
 
     try {
-      await clientTransporter.sendMail({
-        from: `"Shivam Support" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
+      await clientResend.emails.send({
+        from: senderEmail,
         to: email, 
         subject: "🔐 Password Reset - Your New Portal Access Key",
         html: `
@@ -899,7 +844,6 @@ app.post('/api/client/get-projects', async (req, res) => {
   }
 });
 
-
 app.post('/api/client/send-message', async (req, res) => {
   try {
     const { email, projectId, message } = req.body;
@@ -908,7 +852,6 @@ app.post('/api/client/send-message', async (req, res) => {
       return res.status(400).json({ success: false, message: "Project ID and Message are required." });
     }
 
-    
     const project = await ClientProject.findById(projectId);
     if (!project) return res.status(404).json({ success: false, message: "Project not found" });
 
@@ -924,19 +867,14 @@ app.post('/api/client/send-message', async (req, res) => {
 
 
     try {
-
       const adminEmails = [
         process.env.SUPER_ADMIN_EMAIL, 
         process.env.ADMIN_EMAIL
       ].filter(Boolean).join(', '); 
 
-      await adminTransporter.sendMail({
-       
-        from: `"Client Portal Alert" <${process.env.TEAM_EMAIL_USER}>`, 
-        
-  
+      await adminResend.emails.send({
+        from: senderEmail, 
         to: adminEmails || process.env.TEAM_EMAIL_USER, 
-        
         subject: `📩 Portal Reply: ${project.clientName} (${project.projectTitle})`,
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; border-radius: 10px;">
@@ -1029,11 +967,11 @@ app.post('/api/admin/team', verifyAdminToken, async (req, res) => {
       });
       
       try {
-        await teamTransporter.sendMail({
-          from: `"Shivam Superadmin" <${process.env.TEAM_EMAIL_USER || process.env.EMAIL_USER}>`,
+        await teamResend.emails.send({
+          from: senderEmail,
           to: identifier,
           subject: "🎉 Welcome to Shivam Web Studio Team",
-          html: `<p>Hi ${name},</p><p>You've been granted access to the Admin Dashboard.</p><p><b>Login Email:</b> ${identifier}<br><b>Password:</b> ${rawPassword}<br><b>2FA PIN:</b> ${rawPin}</p><p><em>For security, please login and change your Password and PIN immediately.</em></p><p>Login here: <a href="http://localhost:5173/admin">Admin Panel</a></p>`
+          html: `<p>Hi ${name},</p><p>You've been granted access to the Admin Dashboard.</p><p><b>Login Email:</b> ${identifier}<br><b>Password:</b> ${rawPassword}<br><b>2FA PIN:</b> ${rawPin}</p><p><em>For security, please login and change your Password and PIN immediately.</em></p><p>Login here: <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin">Admin Panel</a></p>`
         });
       } catch(e) { console.log("Team email failed", e.message); }
 
@@ -1218,8 +1156,8 @@ app.post('/api/client-projects/:id/message', verifyAdminToken, checkPerm(['proje
 
    
     try {
-      await clientTransporter.sendMail({
-        from: `"Shivam Web Studio" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
+      await clientResend.emails.send({
+        from: senderEmail,
         to: project.clientEmail,
         subject: `📩 Important Message regarding ${project.projectTitle}`,
         html: `
@@ -1266,11 +1204,11 @@ app.post('/api/admin/verify-client-payment/:id', verifyAdminToken, checkPerm(['p
     await project.save();
 
     try {
-      await clientTransporter.sendMail({
-        from: `"Shivam Web Studio" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
+      await clientResend.emails.send({
+        from: senderEmail,
         to: project.clientEmail,
         subject: "🎉 Payment Verified - Your Project Access Key",
-        html: `<h3>Hi ${project.clientName},</h3><p>Your payment for <strong>${project.projectTitle}</strong> has been successfully verified.</p><p>You can now track your project's live progress on our portal.</p><br><p><strong>Login Email:</strong> ${project.clientEmail}</p><p><strong>Secure Access Key:</strong> <span style="font-size:24px; color:#00e5ff; font-weight:bold; letter-spacing: 4px;">${rawAccessKey}</span></p><br><p><em>Note: For security reasons, do not share it with anyone!</em></p>`
+        html: `<h3>Hi ${project.clientName},</h3><p>Your payment for <strong>${project.projectTitle}</strong> has been successfully verified.</p><p>You can now track your project's live progress on our portal.</p><br><p><strong>Login Email:</strong> ${project.clientEmail}</p><p><strong>Secure Access Key:</strong> <span style="font-size:24px; color:#00e5ff; font-weight:bold; letter-spacing: 4px;">${rawAccessKey}</span></p><br><p><em>Note: For security reasons, do not share it with anyone!</em></p><br><p><em>Forgot or want to change your Access Key? <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/portal">Click here to Reset Password</a></em></p>`
       });
     } catch(mailErr) {
        console.log("Email failed, but key was generated.");
@@ -1299,11 +1237,11 @@ app.post('/api/admin/approve-payment-message/:msgId', verifyAdminToken, checkPer
             await Message.findByIdAndDelete(req.params.msgId);
             
             try {
-              await clientTransporter.sendMail({
-                from: `"Shivam Web Studio" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
+              await clientResend.emails.send({
+                from: senderEmail,
                 to: msg.email,
                 subject: "🎉 Remaining Balance Verified",
-                html: `<h3>Hi ${msg.name},</h3><p>Your remaining balance payment is verified. Project status is now ${customPaymentStatus}.</p>`
+                html: `<h3>Hi ${msg.name},</h3><p>Your remaining balance payment is verified. Project status is now ${customPaymentStatus}.</p><br><p><em>Forgot or want to change your Access Key? <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/portal">Click here to Reset Password</a></em></p>`
               });
             } catch(e) {}
 
@@ -1337,11 +1275,11 @@ app.post('/api/admin/approve-payment-message/:msgId', verifyAdminToken, checkPer
     await newProject.save();
 
     try {
-      await clientTransporter.sendMail({
-        from: `"Shivam Web Studio" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
+      await clientResend.emails.send({
+        from: senderEmail,
         to: msg.email,
         subject: "🎉 Payment Verified - Portal Login Details",
-        html: `<h3>Hi ${msg.name},</h3><p>Your payment is verified. Track your project here: <a href="http://localhost:5173/portal">Client Portal</a></p><p>Email: <b>${msg.email}</b></p><p>Access Key: <b style="color:#00e5ff; font-size:20px;">${rawAccessKey}</b></p>`
+        html: `<h3>Hi ${msg.name},</h3><p>Your payment is verified. Track your project here: <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/portal">Client Portal</a></p><p>Email: <b>${msg.email}</b></p><p>Access Key: <b style="color:#00e5ff; font-size:20px;">${rawAccessKey}</b></p><br><p><em>Forgot or want to change your Access Key? <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/portal">Click here to Reset Password</a></em></p>`
       });
     } catch(mailErr) {
       console.log("Email failed, but Project Created. Raw Key:", rawAccessKey);
@@ -1362,8 +1300,8 @@ app.post('/api/admin/reject-payment-message/:msgId', verifyAdminToken, checkPerm
     const rejectReason = req.body.reason || "Invalid Transaction ID or Unclear Screenshot";
 
     try {
-      await clientTransporter.sendMail({
-        from: `"Shivam Support" <${process.env.CLIENT_EMAIL_USER || process.env.EMAIL_USER}>`,
+      await clientResend.emails.send({
+        from: senderEmail,
         to: msg.email,
         subject: "⚠️ Action Required: Payment Verification Failed",
         html: `
@@ -1426,7 +1364,6 @@ app.get('/api/linkedin-skills', async (req, res) => {
     return res.status(200).json([]); 
   } catch (error) { res.status(200).json([]); }
 });
-
 
 const PORT = process.env.PORT || 5000;
 
