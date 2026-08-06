@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
-// --- Component Imports ---
+ 
 import Navbar from './components/Navbar';
 import Chatbot from './components/Chatbot';
 import Footer from './components/Footer';
 import Preloader from './components/Preloader';     
 import PageWrapper from './components/PageWrapper'; 
 
-// --- Page Imports ---
+ 
 import Home from './pages/Home';
 import About from './pages/About';
 import Skills from './pages/Skills';
@@ -24,17 +24,17 @@ import Refund from './pages/Refund';
 import Reviews from './pages/Reviews';
 import Admin from './pages/Admin';
 import ClientPortal from './pages/ClientPortal';
-import Experience from './pages/Experience'; // Naya Experience page import kiya hai
+import Experience from './pages/Experience'; 
 
-// 🔥 ROUTES KO ALAG COMPONENT ME RAKHNA ZARURI HAI (For Animations) 🔥
+ 
 const AnimatedRoutes = () => {
-  const location = useLocation(); // Current page ki location track karne ke liye
+  const location = useLocation();   
 
   return (
-    // mode="wait" ka matlab hai pehle purana page jayega, tab naya aayega (No overlapping)
+     
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        {/* Har page ko PageWrapper se cover kiya hai */}
+         
         <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
         <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
         <Route path="/skills" element={<PageWrapper><Skills /></PageWrapper>} />
@@ -48,7 +48,7 @@ const AnimatedRoutes = () => {
         <Route path="/refund" element={<PageWrapper><Refund /></PageWrapper>} />
         <Route path="/reviews" element={<PageWrapper><Reviews /></PageWrapper>} />
         <Route path="/admin" element={<PageWrapper><Admin /></PageWrapper>} />
-        <Route path="/experience" element={<PageWrapper><Experience /></PageWrapper>} /> {/* Naya Experience route */}
+        <Route path="/experience" element={<PageWrapper><Experience /></PageWrapper>} />  
         <Route path="/portal" element={<PageWrapper><ClientPortal /></PageWrapper>} />
       </Routes>
     </AnimatePresence>
@@ -58,7 +58,7 @@ const AnimatedRoutes = () => {
 function App() {
   const [loading, setLoading] = useState(true);
 
-  // 1.5 seconds ke liye Loader dikhana
+   
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
@@ -70,10 +70,10 @@ function App() {
     <Router>
       <AnimatePresence mode="wait">
         {loading ? (
-          // Jab site reload hogi toh pehle Preloader dikhega
+           
           <Preloader key="preloader" />
         ) : (
-          // Loader jane ke baad actual website dikhegi
+          
           <div key="main-app" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg-main)' }}>
             <Navbar />
             <Chatbot />

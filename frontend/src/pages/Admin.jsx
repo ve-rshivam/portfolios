@@ -4,7 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { Float, MeshDistortMaterial, Sphere } from '@react-three/drei';
 
 const Admin = () => {
-  // ==================== SAFE STORAGE PARSER ====================
+ 
   const getSafePerms = () => {
     try {
       const perms = localStorage.getItem("adminPerms");
@@ -12,26 +12,26 @@ const Admin = () => {
     } catch(e) { return []; }
   };
 
-  // ==================== SECURE AUTH STATES ====================
+  
   const [authStep, setAuthStep] = useState(localStorage.getItem("adminToken") ? 2 : 0);
   const [loginData, setLoginData] = useState({ identifier: '', password: '' });
   const [backupPin, setBackupPin] = useState('');
   const [loginError, setLoginError] = useState('');
   
-  // 🔥 ROLE-BASED ACCESS CONTROL (RBAC) STATES 🔥
+  
   const [adminRole, setAdminRole] = useState(localStorage.getItem("adminRole") || "team");
   const [adminPerms, setAdminPerms] = useState(getSafePerms());
   const [adminName, setAdminName] = useState(localStorage.getItem("adminName") || "");
 
-  // Forgot Password States
+  
   const [resetIdentifier, setResetIdentifier] = useState('');
   const [resetOtp, setResetOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
-  // ==================== DASHBOARD STATES ====================
+ 
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Data States
+  
   const [inboxData, setInboxData] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [services, setServices] = useState([]); 
@@ -40,17 +40,17 @@ const Admin = () => {
   const [clientProjects, setClientProjects] = useState([]);
   const [education, setEducation] = useState([]);
 
-  // 🔥 GITHUB PROJECTS CONTROL STATES 🔥
+ 
   const [githubProjects, setGithubProjects] = useState([]);
   const [pinnedProjects, setPinnedProjects] = useState([]);
   
-  // Form States
+ 
   const [newEdu, setNewEdu] = useState({ degree: '', institution: '', duration: '', score: '', description: '' });
   const [newExp, setNewExp] = useState({ duration: '', role: '', company: '', description: '' }); 
   const [newService, setNewService] = useState({ title: '', description: '', icon: '🔧', price: '' });
   const [newSkill, setNewSkill] = useState({ name: '', description: '', icon: '💻', proficiency: 50, category: 'Tech' }); 
   
-  // 🔥 TEAM MANAGEMENT STATE 🔥
+  
   const [teamList, setTeamList] = useState([]);
   const [newTeamMember, setNewTeamMember] = useState({ name: '', identifier: '', permissions: [] });
 
@@ -65,24 +65,18 @@ const Admin = () => {
   const [contactData, setContactData] = useState([]);
   const [policyData, setPolicyData] = useState({ privacy: '', terms: '', refund: '' });
 
-  // 🔥 SELF-SERVICE SECURITY STATES 🔥
+  
   const [securityData, setSecurityData] = useState({ oldPassword: '', newPassword: '', newPin: '' });
   const [securityMsg, setSecurityMsg] = useState('');
 
-  // ====================================
-  // 🛡️ SECURITY HELPER: Check Permission
-  // ====================================
   const hasPerm = (perm) => adminRole === 'superadmin' || adminPerms.includes(perm);
 
-  // ====================================
-  // FETCH DASHBOARD DATA (Safe Fetching Logic)
-  // ====================================
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem("adminToken"); 
       const headers = { "Authorization": `Bearer ${token}` }; 
 
-      // 1. Unconditional Fetches (Because these are public data APIs)
+     
       const srvRes = await fetch("https://portfolio-px1j.onrender.com/api/services"); 
       if(srvRes.ok) setServices(await srvRes.json());
 
@@ -94,7 +88,7 @@ const Admin = () => {
         setExperiences(skillData.experiences || []);
       }
 
-      // 2. Conditional / Protected Fetches
+      
       if (hasPerm('messages') || hasPerm('payments')) {
         const msgRes = await fetch("https://portfolio-px1j.onrender.com/api/messages", { headers });
         if(msgRes.ok) setInboxData(await msgRes.json());
@@ -141,9 +135,6 @@ const Admin = () => {
   }, [authStep, adminRole]);
 
 
-  // ====================================
-  // PROTECTED ACTIONS (MESSAGES, REVIEWS, CMS)
-  // ====================================
   const deleteInboxItem = async (id) => {
     if (window.confirm("Delete this permanently?")) {
       try {
@@ -245,13 +236,12 @@ const Admin = () => {
     }
   };
 
-  // --- SERVICES LOGIC ---
-  // --- SERVICES LOGIC ---
+ 
   const handleAddService = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("adminToken");
-      const isEditing = !!newService._id; // Check if we are updating
+      const isEditing = !!newService._id;
       const url = isEditing ? `https://portfolio-px1j.onrender.com/api/services/${newService._id}` : "https://portfolio-px1j.onrender.com/api/services";
       const method = isEditing ? "PUT" : "POST";
 
@@ -280,7 +270,7 @@ const Admin = () => {
     }
   };
 
-  // --- EDUCATION LOGIC --- 
+
   const handleAddEdu = async (e) => {
     e.preventDefault();
     try {
@@ -305,13 +295,12 @@ const Admin = () => {
     }
   };
 
-  // --- SKILLS LOGIC --- 
-  // --- SKILLS LOGIC --- 
+ 
   const handleAddSkill = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("adminToken");
-      const isEditing = !!newSkill._id; // Check if we are updating
+      const isEditing = !!newSkill._id; 
       const url = isEditing ? `https://portfolio-px1j.onrender.com/api/skill/${newSkill._id}` : "https://portfolio-px1j.onrender.com/api/skill";
       const method = isEditing ? "PUT" : "POST";
 
@@ -355,7 +344,7 @@ const Admin = () => {
     }
   };
 
-  // 🔥 EXPERIENCE LOGIC 🔥
+
   const handleAddExp = async (e) => {
     e.preventDefault();
     try {
@@ -387,7 +376,7 @@ const Admin = () => {
     }
   };
 
-  // --- CLIENT PROJECTS LOGIC --- 
+ 
   const handleAddProject = async (e) => {
     e.preventDefault();
     try {
@@ -556,7 +545,6 @@ const Admin = () => {
     }
   };
 
-  // ==================== SECURE LOGIN FLOW ====================
   const handleStep1Login = async (e) => {
     e.preventDefault();
     setLoginError("Verifying...");
@@ -645,11 +633,11 @@ const Admin = () => {
     setBackupPin('');
   };
 
-  // Data Filtering safely
+
   const contactMessages = (inboxData || []).filter(msg => msg?.type === 'contact' || !msg?.type);
   const paymentMessages = (inboxData || []).filter(msg => msg?.type === 'payment');
 
-  // ==================== RENDER: AUTH SCREENS ====================
+  
   if (authStep !== 2) {
     return (
       <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', padding: '0 5vw', background: 'var(--bg-main)' }}>
@@ -715,11 +703,11 @@ const Admin = () => {
     );
   }
 
-  // ==================== RENDER: MAIN DASHBOARD ====================
+ 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-main)', fontFamily: 'Inter, sans-serif' }}>
       
-      {/* ── SIDEBAR (WITH RBAC HIDING LOGIC) ── */}
+      
       <div style={{ width: '250px', background: 'var(--bg-card)', borderRight: '1px solid var(--border-color)', padding: '30px 20px', display: 'flex', flexDirection: 'column' }}>
         <h2 style={{ color: 'var(--accent)', fontSize: '20px', margin: '0 0 10px 0', fontFamily: 'monospace' }}>Shivam<span style={{color:'var(--text-main)'}}>.Admin</span></h2>
         <div style={{ padding: '8px', background: 'var(--bg-main)', borderRadius: '6px', fontSize: '12px', color: 'var(--text-dim)', marginBottom: '30px', textAlign: 'center', border: '1px dashed var(--border-color)' }}>
@@ -759,10 +747,10 @@ const Admin = () => {
         <button onClick={handleLogout} style={{ marginTop: '10px', padding: '12px', background: 'rgba(255, 77, 77, 0.1)', color: '#ff4d4d', border: '1px solid rgba(255, 77, 77, 0.3)', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Logout</button>
       </div>
 
-      {/* ── MAIN CONTENT AREA ── */}
+     
       <div style={{ flex: 1, padding: '40px 5vw', overflowY: 'auto' }}>
         
-        {/* DASHBOARD OVERVIEW */}
+        
         {activeTab === 'dashboard' && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '30px' }}>Dashboard Overview</h1>
@@ -776,7 +764,7 @@ const Admin = () => {
           </motion.div>
         )}
 
-        {/* MESSAGES */}
+        
         {activeTab === 'messages' && hasPerm('messages') && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '30px' }}>Contact Form Inbox</h1>
@@ -799,7 +787,7 @@ const Admin = () => {
           </motion.div>
         )}
 
-        {/* PAYMENTS */}
+       
         {activeTab === 'payments' && hasPerm('payments') && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '30px' }}>Payment Verifications</h1>
@@ -844,7 +832,7 @@ const Admin = () => {
           </motion.div>
         )}
 
-        {/* REVIEWS */}
+     
         {activeTab === 'reviews' && hasPerm('reviews') && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '30px' }}>Manage Reviews</h1>
@@ -879,7 +867,7 @@ const Admin = () => {
           </motion.div>
         )}
 
-        {/* SERVICES */}
+        
         {activeTab === 'services' && hasPerm('services') && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '10px' }}>Manage Services</h1>
@@ -917,7 +905,7 @@ const Admin = () => {
                     <p style={{ color: 'var(--text-dim)', fontSize: '13px', margin: '0 0 10px 0' }}>{srv.description}</p>
                     <p style={{ margin: 0, color: 'var(--accent)', fontWeight: 'bold', fontSize: '14px' }}>{srv.price}</p>
                     
-                    {/* EDIT & DELETE BUTTONS */}
+                    
                     <button onClick={() => setNewService(srv)} style={{ ...deleteBtnStyle, right: '85px', color: '#00e5ff', borderColor: '#00e5ff' }}>Edit</button>
                     <button onClick={() => deleteService(srv._id)} style={deleteBtnStyle}>Delete</button>
                   </div>
@@ -926,7 +914,7 @@ const Admin = () => {
             </div>
           </motion.div>
         )}
-        {/* 🔥 FIX: BULLETPROOF SKILLS TAB 🔥 */}
+ 
         {activeTab === 'skills' && hasPerm('skills') && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '10px' }}>Manage Skills</h1>
@@ -969,7 +957,7 @@ const Admin = () => {
                     <p style={{ color: 'var(--text-dim)', fontSize: '13px', margin: '0 0 10px 0' }}>{skill.description || 'No description'}</p>
                     <span style={{ background: 'rgba(0, 229, 255, 0.1)', color: 'var(--accent)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>{skill.category || 'Tech'}</span>
                     
-                    {/* EDIT & DELETE BUTTONS */}
+                    
                     <button onClick={() => setNewSkill(skill)} style={{ ...deleteBtnStyle, right: '85px', color: '#00e5ff', borderColor: '#00e5ff', opacity: skill._id ? 1 : 0.4 }} disabled={!skill._id}>Edit</button>
                     <button onClick={() => deleteSkill(skill._id)} disabled={!skill._id} style={{ ...deleteBtnStyle, opacity: skill._id ? 1 : 0.4 }}>Delete</button>
                   </div>
@@ -979,7 +967,7 @@ const Admin = () => {
           </motion.div>
         )}
 
-        {/* EDUCATION MANAGEMENT */}
+      
         {activeTab === 'education' && hasPerm('skills') && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '10px' }}>Manage Education</h1>
@@ -1020,7 +1008,7 @@ const Admin = () => {
           </motion.div>
         )}
 
-        {/* EXPERIENCE TIMELINE MANAGEMENT */}
+        
         {activeTab === 'experience' && hasPerm('skills') && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '10px' }}>Manage Timeline & Experience</h1>
@@ -1059,7 +1047,7 @@ const Admin = () => {
           </motion.div>
         )}
 
-        {/* CLIENT PROJECTS TRACKING */}
+        
         {activeTab === 'projects' && hasPerm('projects') && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '10px' }}>Client Project Tracking</h1>
@@ -1130,7 +1118,7 @@ const Admin = () => {
           </motion.div>
         )}
 
-        {/* WEBSITE CONTENT (CMS EXPANDED) */}
+       
         {activeTab === 'cms' && hasPerm('cms') && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '10px' }}>Global Website Editor</h1>
@@ -1180,7 +1168,7 @@ const Admin = () => {
           </motion.div>
         )}
 
-        {/* 🔥 NEW: GITHUB PROJECTS MANAGEMENT 🔥 */}
+  
         {activeTab === 'github' && hasPerm('cms') && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '10px' }}>Manage GitHub Projects</h1>
@@ -1219,7 +1207,7 @@ const Admin = () => {
           </motion.div>
         )}
 
-        {/* 🔥 SECURITY SETTINGS 🔥 */}
+        
         {activeTab === 'security' && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '10px' }}>Security Settings</h1>
@@ -1239,7 +1227,7 @@ const Admin = () => {
           </motion.div>
         )}
 
-        {/* 🔥 TEAM MANAGEMENT (SUPERADMIN ONLY) 🔥 */}
+       
         {activeTab === 'team' && adminRole === 'superadmin' && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 style={{ marginBottom: '10px' }}>Team Role Management</h1>
@@ -1311,7 +1299,7 @@ const Admin = () => {
   );
 };
 
-// ==================== HELPER COMPONENTS & STYLES ====================
+
 
 const SidebarBtn = ({ children, active, onClick, style }) => (
   <button onClick={onClick} style={{ width: '100%', textAlign: 'left', padding: '15px', background: active ? 'var(--accent-glow)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-dim)', border: active ? '1px solid var(--accent)' : '1px solid transparent', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', fontWeight: active ? 'bold' : 'normal', fontSize: '15px', ...style }}>

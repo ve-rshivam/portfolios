@@ -8,21 +8,21 @@ const Payment = () => {
   const location = useLocation(); 
   const navigate = useNavigate();
   
-  // Portal Navigation State Extraction
+  
   const portalData = location.state || {};
   const preSelectedService = portalData.preSelectedService || '';
   const isRemainingPayment = portalData.isRemainingPayment || false;
 
-  // Agar remaining payment hai, toh seedha Step 2 dikhayenge
+ 
   const [step, setStep] = useState(isRemainingPayment ? 2 : 1);
   const [verifyStatus, setVerifyStatus] = useState("");
   const [servicesList, setServicesList] = useState([]); 
   
-  // Feature 1: Slider State
+  
   const [paymentPercent, setPaymentPercent] = useState(100);
   const [paymentStatusMessage, setPaymentStatusMessage] = useState(''); 
   
-  // Client Details State
+ 
   const [clientDetails, setClientDetails] = useState({
     name: portalData.clientName || '', 
     email: portalData.clientEmail || '', 
@@ -31,14 +31,14 @@ const Payment = () => {
     projectId: portalData.projectId || null
   });
 
-  // Ensure Pre-selected Service stays selected
+  
   useEffect(() => {
     if (preSelectedService && !isRemainingPayment) {
       setClientDetails(prev => ({ ...prev, service: preSelectedService }));
     }
   }, [preSelectedService, isRemainingPayment]);
 
-  // Auto-Fetch Services from Backend
+  
   useEffect(() => {
     const fetchServices = async () => {
       try {
@@ -58,7 +58,7 @@ const Payment = () => {
     fetchServices();
   }, [preSelectedService, isRemainingPayment]);
 
-  // --- Mouse Proximity Glow Logic ---
+ 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
@@ -81,20 +81,14 @@ const Payment = () => {
     transition: 'border-color 0.3s ease'
   };
 
-  // ==========================================
-  // SMART PAYMENT CALCULATIONS
-  // ==========================================
   const selectedSrvForMath = servicesList.find(s => s.title === clientDetails.service);
   const baseTotal = selectedSrvForMath ? parseInt(selectedSrvForMath.price.replace(/\D/g, "") || "100", 10) : 100;
   
-  // Custom logic for Portal Remaining Payment
+ 
   const totalAmount = isRemainingPayment ? portalData.remainingAmount : baseTotal;
   const amountToPay = isRemainingPayment ? totalAmount : Math.round((totalAmount * paymentPercent) / 100);
   const remainingAmount = isRemainingPayment ? 0 : (totalAmount - amountToPay);
 
-  // ==========================================
-  // 🛡️ STRICT VALIDATION & 🔥 LEAD CAPTURE (Step 1)
-  // ==========================================
   const handleProceedToPay = (e) => {
     e.preventDefault();
 
@@ -123,7 +117,7 @@ const Payment = () => {
           name: clientName,
           email: clientEmail,
           phone: clientPhone,
-          message: `🛒 Checkout Initiated for: ${clientDetails.service} (Payment Pending)`,
+          message: `🛒 Checkout Initiated for: ₹{clientDetails.service} (Payment Pending)`,
           type: 'contact'
         })
       });
@@ -136,9 +130,6 @@ const Payment = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ==========================================
-  // 🔥 DATABASE SUBMIT LOGIC (Step 2 Manual Proof)
-  // ==========================================
   const handleVerifySubmit = async (e) => {
     e.preventDefault(); 
     setVerifyStatus("Processing data... ⏳");
@@ -179,7 +170,7 @@ const Payment = () => {
       message: `Service: ${clientDetails.service} | Transaction ID: ${formData.get('transaction_id')}`,
       type: 'payment',
       attachment: base64Image,
-      // Pass these securely to verify payment via manual check
+      
       projectId: clientDetails.projectId,
       isRemainingPayment: isRemainingPayment,
       amountPaid: amountToPay
@@ -215,9 +206,6 @@ const Payment = () => {
     }
   };
 
-  // ==========================================
-  // 🔥 AUTOMATED GATEWAYS LOGIC (RAZORPAY & PAYPAL)
-  // ==========================================
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       const script = document.createElement("script");
@@ -239,7 +227,7 @@ const Payment = () => {
     
     const selectedSrv = servicesList.find(s => s.title === clientDetails.service);
     
-    // 🛡️ Request body safely prepared with Smart Payment Amounts
+    
     const requestBody = {
         amount: amountToPay,
         totalAmount: totalAmount,
@@ -350,10 +338,7 @@ const Payment = () => {
       setPaymentStatusMessage(`❌ Error: ${err.message}`);
     }
   };
-
-  // ==========================================
-  // RENDER JSX (HTML)
-  // ==========================================
+ 
   return (
     <div style={{ 
       position: 'relative', minHeight: '100vh', padding: '120px 5vw 80px 5vw', 
@@ -377,7 +362,7 @@ const Payment = () => {
 
         <AnimatePresence mode="wait">
           
-          {/* ================= STEP 1: CLIENT DETAILS ================= */}
+           
           {step === 1 && !isRemainingPayment && (
             <motion.div 
               key="step1" initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }}
@@ -433,7 +418,7 @@ const Payment = () => {
             </motion.div>
           )}
 
-          {/* ================= STEP 2: PAYMENT & VERIFICATION ================= */}
+           
           {step === 2 && (
             <motion.div key="step2" initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
               
@@ -453,14 +438,14 @@ const Payment = () => {
                     </div>
                 )}
 
-                {/* --- SMART PAYMENT SLIDER OR REMAINING BALANCE UI --- */}
+                
                 {isRemainingPayment ? (
                   <div style={{ background: 'var(--bg-main)', padding: '20px', borderRadius: '12px', border: '1px dashed var(--border-color)', marginBottom: '20px', textAlign: 'left' }}>
                     <h4 style={{ color: 'var(--text-main)', margin: '0 0 10px 0' }}>Clear Pending Dues</h4>
                     <p style={{ color: 'var(--text-dim)', fontSize: '14px' }}>You are paying the remaining balance for this project.</p>
                     <div style={{ marginTop: '15px', padding: '15px', background: 'var(--bg-card)', borderRadius: '8px', borderLeft: '4px solid var(--accent)' }}>
                       <p style={{ margin: '0', color: 'var(--text-main)', fontSize: '18px' }}>
-                        <strong>Amount Due: <span style={{ color: 'var(--accent)' }}>${amountToPay}</span></strong>
+                        <strong>Amount Due: <span style={{ color: 'var(--accent)' }}>₹{amountToPay}</span></strong>
                       </p>
                     </div>
                   </div>
@@ -469,7 +454,7 @@ const Payment = () => {
                     <h4 style={{ color: 'var(--text-main)', margin: '0 0 15px 0' }}>Adjust Payment Amount</h4>
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '14px' }}>
-                      <span style={{ color: 'var(--text-dim)' }}>Total Cost: ${totalAmount}</span>
+                      <span style={{ color: 'var(--text-dim)' }}>Total Cost: ₹{totalAmount}</span>
                       <span style={{ color: 'var(--text-dim)' }}>Min: 40%</span>
                     </div>
 
@@ -485,19 +470,19 @@ const Payment = () => {
                     
                     <div style={{ marginTop: '15px', padding: '10px', background: 'var(--bg-card)', borderRadius: '8px', borderLeft: '4px solid var(--accent)' }}>
                       <p style={{ margin: '0 0 5px 0', color: 'var(--text-main)', fontSize: '16px' }}>
-                        <strong>Paying Now ({paymentPercent}%): <span style={{ color: 'var(--accent)' }}>${amountToPay}</span></strong>
+                        <strong>Paying Now ({paymentPercent}%): <span style={{ color: 'var(--accent)' }}>₹{amountToPay}</span></strong>
                       </p>
                       {remainingAmount > 0 && (
-                        <p style={{ margin: 0, color: '#ff4d6d', fontSize: '13px' }}>Remaining Balance: ${remainingAmount}</p>
+                        <p style={{ margin: 0, color: '#ff4d6d', fontSize: '13px' }}>Remaining Balance: ₹{remainingAmount}</p>
                       )}
                     </div>
                   </div>
                 )}
-                {/* --- UI END --- */}
+                 
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', alignItems: 'start' }}>
                   
-                  {/* MANUAL UPI / QR BLOCK */}
+                   
                   <div style={{ background: 'var(--bg-main)', padding: '30px', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
                     <span style={{ display: 'block', color: 'var(--text-main)', fontWeight: '600', marginBottom: '15px' }}>Scan QR Code or Pay via UPI:</span>
                     <img src="/qr_code.png" alt="Payment QR Code" style={{ width: '180px', height: '180px', borderRadius: '10px', border: '2px solid var(--accent)', objectFit: 'cover', margin: '0 auto 15px auto', display: 'block' }} />
@@ -514,7 +499,7 @@ const Payment = () => {
                     <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-dim)' }}>Name: SHIVAM KUMAR</span>
                   </div>
 
-                  {/* AUTOMATED GATEWAYS (RAZORPAY & PAYPAL) */}
+                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     
                     <div style={{ background: 'var(--bg-main)', padding: '25px', borderRadius: '12px', border: '1px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -528,7 +513,7 @@ const Payment = () => {
                       </motion.button>
                     </div>
 
-                    {/* PAYPAL BUTTON */}
+                     
                     <div style={{ background: 'var(--bg-main)', padding: '25px', borderRadius: '12px', border: '1px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                       <h3 style={{ color: 'var(--text-main)', marginBottom: '15px', fontSize: '18px' }}>Pay via PayPal (Intl.)</h3>
                       <PayPalScriptProvider options={{ "client-id": import.meta.env.VITE_PAYPAL_CLIENT_ID || "sb", currency: "USD" }}>
@@ -579,7 +564,7 @@ const Payment = () => {
                 </div>
               </div>
 
-              {/* ── UPLOAD SCREENSHOT / VERIFY PAYMENT (For QR Code Users) ── */}
+               
               <div style={{ background: 'var(--bg-card)', padding: '40px 30px', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
                 <h2 style={{ color: 'var(--accent)', fontFamily: 'monospace', fontSize: '22px', marginBottom: '10px', textAlign: 'center' }}>// Manual QR Verification</h2>
                 <p style={{ color: 'var(--text-dim)', fontSize: '14px', textAlign: 'center', marginBottom: '30px' }}>If you paid via QR/UPI, submit your transaction details here so I can confirm.</p>
@@ -610,7 +595,7 @@ const Payment = () => {
           )}
         </AnimatePresence>
 
-        {/* ── REFUND POLICY SUMMARY ── */}
+        
         <motion.div 
           initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
           style={{ background: 'rgba(255, 77, 109, 0.05)', padding: '30px', borderRadius: '16px', border: '1px solid rgba(255, 77, 109, 0.2)', position: 'relative' }}

@@ -7,7 +7,7 @@ const Legal = () => {
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
-  // Fetch dynamic content from Admin CMS for Legal page sections
+  
   useEffect(() => {
     fetch("https://portfolio-px1j.onrender.com/api/content")
       .then(res => res.json())
@@ -118,7 +118,7 @@ const Legal = () => {
           </motion.a>
         </div>
 
-        {/* ── 1. PRIVACY POLICY ── */}
+       
         <motion.section 
           id="privacy"
           initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
@@ -141,7 +141,7 @@ const Legal = () => {
           )}
         </motion.section>
 
-        {/* ── 2. TERMS & CONDITIONS ── */}
+       
         <motion.section 
           id="terms"
           initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
@@ -165,7 +165,7 @@ const Legal = () => {
           )}
         </motion.section>
 
-        {/* ── 3. REFUND POLICY (Auto Synced) ── */}
+        
         <motion.section 
           id="refund"
           initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}

@@ -59,7 +59,7 @@ const Experience = () => {
       boxShadow: '0 0 10px var(--accent)', 
       transform: 'translateX(-50%)',
       borderRadius: '10px',
-      zIndex: 1 // 🔥 Line stays behind the dots
+      zIndex: 1 
     },
     timelineItem: (isLeft) => ({
       display: 'flex',
@@ -75,11 +75,11 @@ const Experience = () => {
       width: '24px',
       height: '24px',
       borderRadius: '50%',
-      background: 'var(--bg-main)', // 🔥 Background match kiya hai taki line circle ke andar na dikhe
+      background: 'var(--bg-main)', 
       border: '4px solid var(--accent)',
       boxShadow: '0 0 15px var(--accent), inset 0 0 5px var(--accent)', 
       zIndex: 10
-      // 🚨 यहाँ से हमने transform हटा दिया है ताकि Framer Motion उसे ख़राब ना करे
+      
     },
     card: {
       width: isMobile ? 'calc(100% - 60px)' : 'calc(50% - 50px)',
@@ -94,7 +94,7 @@ const Experience = () => {
     },
     arrow: (isLeft) => ({
       position: 'absolute',
-      top: '28px', // 🔥 Arrow को परफेक्टली Dot की सीध (center) में किया गया है
+      top: '28px', 
       [isLeft ? 'right' : 'left']: '-12px',
       width: '24px',
       height: '24px',
@@ -132,7 +132,7 @@ const Experience = () => {
             return (
               <div key={exp._id} style={styles.timelineItem(isLeft)}>
                 
-                {/* 🚀 FIXED GLOWING DOT: x और y को यहीं पास किया गया है! */}
+               
                 <motion.div 
                   initial={{ scale: 0, x: "-50%", y: "-50%" }} 
                   whileInView={{ scale: 1, x: "-50%", y: "-50%" }} 

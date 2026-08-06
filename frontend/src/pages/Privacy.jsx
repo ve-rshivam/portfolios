@@ -6,7 +6,7 @@ const Privacy = () => {
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
-  // Fetch dynamic content from Admin CMS
+   
   useEffect(() => {
     fetch("https://portfolio-px1j.onrender.com/api/content")
       .then(res => res.json())

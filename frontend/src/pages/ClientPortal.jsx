@@ -12,35 +12,35 @@ const ClientPortal = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Feature 2: Projects Array State instead of single project object
+ 
   const [projectsList, setProjectsList] = useState(() => {
     const saved = localStorage.getItem('clientProjectsList');
     return saved ? JSON.parse(saved) : [];
   });
   
-  // Active Project Selection State
+ 
   const [activeProjectId, setActiveProjectId] = useState(null);
 
-  // Forgot Password States
+ 
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotMsg, setForgotMsg] = useState('');
   const [forgotError, setForgotError] = useState('');
 
-  // ✅ Welcome Popup State
+  
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [isTempKey, setIsTempKey] = useState(false);
 
-  // 🔥 NEW: Settings & Modals States 🔥
+ 
   const [showSettings, setShowSettings] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   
-  // 🔥 NEW: Client Reply States 🔥
+  
   const [clientReply, setClientReply] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
 
-  // Helper to get currently active project
+ 
   const projectData = projectsList.find(p => p._id === activeProjectId) || projectsList[0];
 
   useEffect(() => {
@@ -97,7 +97,7 @@ const ClientPortal = () => {
         setActiveProjectId(data.projects[0]._id);
         setIsLoggedIn(true);
 
-        // Security check via the first mapped project
+     
         setIsTempKey(data.projects[0].isTemporaryKey || false);
         setShowWelcomePopup(true);
 
@@ -149,7 +149,7 @@ const ClientPortal = () => {
     }
   };
 
-  // 🔥 NEW: Handle Client Reply Submission 🔥
+  
   const handleSendReply = async (e) => {
     e.preventDefault();
     if (!clientReply.trim() || !projectData) return;
@@ -175,7 +175,7 @@ const ClientPortal = () => {
     }
   };
 
-  // 🔥 FEATURE: Pay Remaining Dues Redirect
+ 
   const handlePayRemaining = () => {
     if (!projectData) return;
     
@@ -199,7 +199,7 @@ const ClientPortal = () => {
   return (
     <div style={{ minHeight: '100vh', padding: '120px 8vw 80px 8vw', background: 'var(--bg-main)', color: 'var(--text-main)', fontFamily: 'Inter, sans-serif' }}>
 
-      {/* ✅ WELCOME POPUP */}
+     
       <AnimatePresence>
         {showWelcomePopup && projectData && (
           <motion.div
@@ -251,7 +251,7 @@ const ClientPortal = () => {
         )}
       </AnimatePresence>
 
-      {/* 🔥 NEW: PASSWORD CHANGE MODAL 🔥 */}
+     
       <AnimatePresence>
         {showPasswordModal && (
           <motion.div
@@ -303,7 +303,7 @@ const ClientPortal = () => {
 
 
       {!isLoggedIn ? (
-        // ================= LOGIN SCREEN =================
+       
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -382,7 +382,7 @@ const ClientPortal = () => {
         </div>
 
       ) : (
-        // ================= CLIENT DASHBOARD =================
+       
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ maxWidth: '900px', margin: '0 auto' }}>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '20px' }}>
@@ -390,7 +390,7 @@ const ClientPortal = () => {
               <h1 style={{ margin: '0 0 5px 0', fontSize: '32px' }}>Welcome, <span style={{ color: 'var(--accent)' }}>{projectData.clientName}</span></h1>
             </div>
             
-            {/* 🔥 NEW: GEAR ICON & SETTINGS DROPDOWN / SIDEBAR 🔥 */}
+            
             <div style={{ position: 'relative' }}>
               <button 
                 onClick={() => setShowSettings(!showSettings)} 
@@ -423,7 +423,7 @@ const ClientPortal = () => {
             </div>
           </div>
 
-          {/* 🔥 FEATURE 2: MULTI-PROJECT TABS NAVIGATION 🔥 */}
+          
           {projectsList && projectsList.length > 1 && (
             <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginBottom: '30px', paddingBottom: '10px', borderBottom: '1px solid var(--border-color)' }}>
               {projectsList.map((p) => (
@@ -450,7 +450,7 @@ const ClientPortal = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
 
-            {/* PROGRESS CARD */}
+            
             <div style={{ background: 'var(--bg-card)', padding: '30px', borderRadius: '16px', border: '1px solid var(--border-color)', gridColumn: '1 / -1' }}>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
@@ -476,13 +476,13 @@ const ClientPortal = () => {
               </p>
             </div>
 
-            {/* DETAILS CARDS */}
+           
             <div style={cardStyle}>
               <div style={{ fontSize: '30px', marginBottom: '10px' }}>💳</div>
               <h4 style={{ color: 'var(--text-dim)', margin: '0 0 5px 0' }}>Payment Status</h4>
               <h2 style={{ margin: '0 0 15px 0', color: projectData.balanceDue > 0 ? '#ffaa00' : '#00f5a0' }}>{projectData.paymentStatus}</h2>
               
-              {/* Feature: Pay Remaining Dues */}
+              
               {projectData.balanceDue > 0 && (
                 <div style={{ width: '100%', borderTop: '1px solid var(--border-color)', paddingTop: '15px' }}>
                   <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: 'var(--text-main)' }}>Remaining Due: <strong style={{ color: '#ff4d6d' }}>${projectData.balanceDue}</strong></p>
@@ -502,14 +502,14 @@ const ClientPortal = () => {
               <h2 style={{ margin: 0, color: 'var(--text-main)' }}>{projectData.deliveryDate || 'TBD'}</h2>
             </div>
 
-            {/* ADMIN NOTES & CLIENT REPLY SECTION */}
+            
             <div style={{ ...cardStyle, gridColumn: '1 / -1', background: 'rgba(0, 229, 255, 0.05)', border: '1px dashed var(--accent)', padding: '30px' }}>
               <h3 style={{ color: 'var(--accent)', margin: '0 0 10px 0', fontSize: '20px' }}>🔔 Latest Update from Shivam</h3>
               <p style={{ color: 'var(--text-main)', margin: '0 0 25px 0', lineHeight: '1.6', fontSize: '16px', whiteSpace: 'pre-wrap' }}>
                 {projectData.notes || 'No new updates right now. Working on your project!'}
               </p>
               
-              {/* 🔥 NEW: CLIENT REPLY BOX 🔥 */}
+             
               <div style={{ width: '100%', borderTop: '1px solid rgba(0, 229, 255, 0.2)', paddingTop: '20px' }}>
                 <h4 style={{ color: 'var(--text-main)', margin: '0 0 10px 0' }}>Message your developer directly:</h4>
                 <form onSubmit={handleSendReply} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

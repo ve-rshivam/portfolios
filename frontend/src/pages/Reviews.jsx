@@ -5,7 +5,7 @@ const Reviews = () => {
   const [reviews, setReviews] = useState([]);
   const [formStatus, setFormStatus] = useState("");
 
-  // Mouse Glow Logic
+  
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
@@ -20,10 +20,7 @@ const Reviews = () => {
 
   const cursorGlowX = useTransform(mouseX, (x) => `${x - 200}px`);
   const cursorGlowY = useTransform(mouseY, (y) => `${y - 200}px`);
-
-  // ==========================================
-  // 🔥 DATABASE SE REVIEWS FETCH KARNA 🔥
-  // ==========================================
+ 
   const fetchAllReviews = async () => {
     try {
       const res = await fetch("https://portfolio-px1j.onrender.com/api/reviews");
@@ -34,14 +31,11 @@ const Reviews = () => {
     }
   };
 
-  // Page load hote hi reviews fetch karna
+   
   useEffect(() => {
     fetchAllReviews();
   }, []);
-
-  // ==========================================
-  // 🔥 DATABASE ME NAYA REVIEW SUBMIT KARNA 🔥
-  // ==========================================
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormStatus("Submitting review...");
@@ -63,8 +57,8 @@ const Reviews = () => {
 
       if (response.ok) {
         setFormStatus("✅ Thank you! Your review has been published.");
-        e.target.reset(); // Form clear karna
-        fetchAllReviews(); // 🔥 Naya review aane par list ko auto-refresh karna
+        e.target.reset();  
+        fetchAllReviews();  
       } else {
         setFormStatus("❌ Error: Could not save your review.");
       }
@@ -92,7 +86,7 @@ const Reviews = () => {
           <p style={{ color: 'var(--text-dim)' }}>Read what my clients and colleagues have to say about my work.</p>
         </motion.div>
 
-        {/* Submit Review Form */}
+         
         <motion.div 
           initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
           style={{ background: 'var(--bg-card)', padding: '40px', borderRadius: '16px', border: '1px solid var(--border-color)', marginBottom: '60px' }}
@@ -118,11 +112,11 @@ const Reviews = () => {
           </form>
         </motion.div>
 
-        {/* Display All Reviews */}
+         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', perspective: '2000px' }}>
           {reviews.map((review, i) => (
             <motion.div 
-              key={review._id || i} // Used MongoDB _id for unique key if available
+              key={review._id || i}  
               initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
               whileHover={{ y: -5, scale: 1.02, rotateX: 5, rotateY: -5, borderColor: 'var(--accent)', boxShadow: `0px 15px 40px var(--accent-glow)` }}
               style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', padding: '30px', borderRadius: '16px', border: '1px solid var(--border-color)', textAlign: 'left', transformStyle: 'preserve-3d', transition: 'all 0.3s' }}
@@ -133,7 +127,7 @@ const Reviews = () => {
                 "{review.text}"
               </p>
               
-              {/* 🔥 ADMIN REPLY SECTION 🔥 */}
+               
               {review.adminReply && (
                 <div style={{ marginBottom: '20px', padding: '15px', background: 'rgba(0, 229, 255, 0.05)', borderLeft: '3px solid var(--accent)', borderRadius: '0 8px 8px 0' }}>
                   <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Reply from Developer</span>

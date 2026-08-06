@@ -6,10 +6,10 @@ const Home = () => {
   const navigate = useNavigate();
   const [topProjects, setTopProjects] = useState([]);
   
-  // 🔥 Pinned reviews store karne ke liye
+ 
   const [topReviews, setTopReviews] = useState([]); 
   
-  // 🔥 Live Content from Database (Hero & About)
+ 
   const [homeContent, setHomeContent] = useState({
     heroTitle: "Hi, I am Shivam Singh",
     heroSubtitle: "Full-Stack Web Developer"
@@ -18,22 +18,19 @@ const Home = () => {
     description: "I am a passionate Full-Stack Developer specialized in the MERN stack. I love bringing ideas to life through code and creating seamless, interactive user experiences. When I am not debugging code, I enjoy exploring new 3D web technologies and solving complex algorithms."
   });
   
-  // 🔥 Live Skills from Database
+  
   const [previewSkills, setPreviewSkills] = useState([
     "React.js", "Node.js", "MongoDB", "Express", "Three.js", "Tailwind"
   ]);
 
-  // 🔥 NEW: MOBILE SCROLL & CINEMATIC COLOR STATES 🔥
-
-
-  // Fetch CMS Content
+  
   useEffect(() => {
     fetch("https://portfolio-px1j.onrender.com/api/content")
       .then(res => res.json())
       .then(data => {
         if(data) {
           if(data.homeData) setHomeContent(data.homeData);
-          if(data.aboutData) setAboutContent(data.aboutData); // 🔥 About text ab live update hoga
+          if(data.aboutData) setAboutContent(data.aboutData); 
         }
       })
       .catch(err => console.log("Content fetch error", err));
@@ -70,26 +67,26 @@ const Home = () => {
 
   useEffect(() => {
 
-    // 🔥 ADMIN CONTROLLED PROJECTS (Instead of raw GitHub fetch) 🔥
+    
     fetch(`https://portfolio-px1j.onrender.com/api/pinned-projects`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          // Sirf top 3 pinned projects Home page par dikhayenge
+          
           setTopProjects(data.slice(0, 3)); 
         }
       })
       .catch(err => console.error("Error fetching pinned projects:", err));
 
-    // 2. Fetch Top Reviews (🔥 Pinned Reviews from Database)
+    
     const fetchReviews = async () => {
       try {
         const res = await fetch("https://portfolio-px1j.onrender.com/api/reviews");
         if (res.ok) {
           const data = await res.json();
-          // Sirf wo reviews nikalo jinko Admin ne Pin kiya hai
+          
           const pinnedReviews = data.filter(r => r.isPinned);
-          // Agar pinned reviews hain, toh 3 dikhao, warna latest 2 dikhao
+         
           setTopReviews(pinnedReviews.length > 0 ? pinnedReviews.slice(0, 3) : data.slice(0, 2));
         }
       } catch (error) {
@@ -98,14 +95,14 @@ const Home = () => {
     };
     fetchReviews();
 
-    // 3. Fetch Live Skills from DB
+    
     const fetchSkills = async () => {
       try {
         const res = await fetch("https://portfolio-px1j.onrender.com/api/resume-data");
         if (res.ok) {
           const data = await res.json();
           if (data.skills && data.skills.length > 0) {
-            // DB ki top 6 skills nikal kar array me daal di
+            
             setPreviewSkills(data.skills.slice(0, 6).map(s => s.name));
           }
         }
@@ -125,14 +122,14 @@ const Home = () => {
   return (
     <div style={{ width: '100%', overflowX: 'hidden', background: themeColors.bg, color: themeColors.textMain, position: 'relative', fontFamily: 'Inter, sans-serif' }}>
       
-      {/* Page Body Glow */}
+      
       <div style={{
         position: 'absolute', top: '0', left: '0', width: '100%', height: '100%',
         background: `radial-gradient(circle at center, var(--accent-glow) 0%, ${themeColors.bg} 70%)`,
         zIndex: 0,
       }} />
 
-      {/* Mouse Pointer Proximity Glow Element */}
+      
       <motion.div style={{
         position: 'fixed', width: '400px', height: '400px', borderRadius: '50%',
         background: `radial-gradient(circle, var(--accent-glow) 0%, transparent 70%)`,
@@ -141,7 +138,7 @@ const Home = () => {
 
       <div style={{ position: 'relative', zIndex: 5 }}>
         
-        {/* ================= HERO SECTION ================= */}
+       
         <section style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap-reverse', padding: '100px 8vw 50px 8vw', gap: '20px' }}>
           <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }} style={{ flex: 1, minWidth: '320px', zIndex: 10 }}>
             <p style={{ color: themeColors.accent, fontSize: '18px', fontWeight: 'bold', letterSpacing: '2px', margin: '0 0 10px 0', fontFamily: 'monospace' }}>
@@ -213,7 +210,7 @@ const Home = () => {
           </motion.div>
         </section>
 
-        {/* ================= ABOUT ME & PHOTO SECTION ================= */}
+       
         <section style={{ padding: '100px 8vw', background: 'rgba(0, 0, 0, 0.2)', borderTop: `1px solid ${themeColors.border}` }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '50px', alignItems: 'center', justifyContent: 'center' }}>
             <motion.div 
@@ -229,7 +226,7 @@ const Home = () => {
                 About <span style={{ color: themeColors.accent }}>Me</span>
               </h2>
               <p style={{ color: themeColors.textDim, fontSize: '16px', lineHeight: '1.7', marginBottom: '25px' }}>
-                {aboutContent.description} {/* 🔥 CMS Se connected */}
+                {aboutContent.description} 
               </p>
               <motion.button 
                 whileHover={{ scale: 1.05, backgroundColor: 'var(--accent-glow)' }} onClick={() => navigate('/about')} 
@@ -241,7 +238,7 @@ const Home = () => {
           </div>
         </section>
 
-        {/* ================= SKILLS PREVIEW SECTION ================= */}
+        
         <section style={{ padding: '100px 8vw', textAlign: 'center' }}>
           <motion.h2 initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} style={{ fontSize: '35px', color: themeColors.textMain, marginBottom: '50px', fontWeight: 'bold' }}>
             Top <span style={{ color: themeColors.accent }}>Skills</span>
@@ -267,7 +264,7 @@ const Home = () => {
           </motion.button>
         </section>
 
-        {/* ================= FEATURED PROJECTS SECTION ================= */}
+       
         <section style={{ padding: '100px 8vw', background: 'rgba(0, 0, 0, 0.2)', borderTop: `1px solid ${themeColors.border}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '60px', flexWrap: 'wrap', gap: '20px' }}>
             <h2 style={{ fontSize: '35px', color: themeColors.textMain, margin: 0, fontWeight: 'bold' }}>
@@ -311,7 +308,7 @@ const Home = () => {
           </div>
         </section>
 
-        {/* ================= 🔥 UNCOMMENTED & LIVE: CLIENT REVIEWS 🔥 ================= */}
+        
         {topReviews.length > 0 && (
           <section style={{ padding: '100px 8vw', textAlign: 'center', borderTop: `1px solid ${themeColors.border}` }}>
             <motion.h2 initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} style={{ fontSize: '35px', color: themeColors.textMain, marginBottom: '20px', fontWeight: 'bold' }}>
@@ -351,7 +348,7 @@ const Home = () => {
 
       </div>
 
-      {/* --- Floating Button (Standardized) --- */}
+      
       <motion.div style={{
         position: 'fixed', bottom: '40px', right: '40px', width: '50px', height: '50px', borderRadius: '50%',
         background: themeColors.accent, display: 'flex', alignItems: 'center', justifyContent: 'center',

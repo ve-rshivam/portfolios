@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeContext } from '../context/ThemeContext';
-// 🔥 SABSE ZAROORI IMPORT (Yeh React ko instantly update karne ke liye hai)
+ 
 import { flushSync } from 'react-dom'; 
 
 const Navbar = () => {
@@ -23,15 +23,15 @@ const Navbar = () => {
     setIsDarkMode(theme === 'dark');
   }, [theme]);
 
-  // 🔥 THE ULTIMATE THEME TOGGLE (With flushSync) 🔥
+   
   const toggleTheme = (e) => {
-    // 1. Agar browser mein View API nahi hai, toh simple theme change
+    
     if (!document.startViewTransition) {
       contextToggleTheme();
       return;
     }
 
-    // 2. Exact Mouse Coordinates pata karo (Jahan click hua hai)
+     
     const x = e.clientX || window.innerWidth / 2;
     const y = e.clientY || window.innerHeight / 2;
 
@@ -42,9 +42,9 @@ const Navbar = () => {
 
     const isCurrentlyDark = theme === 'dark' || document.body.classList.contains('dark');
 
-    // 3. Animation shuru karo
+    
     const transition = document.startViewTransition(() => {
-      // ✅ Step A: DOM ko turant badlo (Taaki animation delay na ho)
+       
       if (isCurrentlyDark) {
         document.documentElement.classList.remove('dark');
         document.body.classList.remove('dark');
@@ -57,13 +57,13 @@ const Navbar = () => {
         document.body.classList.remove('light');
       }
 
-      // ✅ Step B: flushSync React ko force karega ki Context bhi isike sath update ho!
+     
       flushSync(() => {
         contextToggleTheme();
       });
     });
 
-    // 4. Ripple Circle Effects
+     
     transition.ready.then(() => {
       document.documentElement.animate(
         {
@@ -73,7 +73,7 @@ const Navbar = () => {
           ]
         },
         {
-          duration: 600, // 0.6 seconds ka smooth cinematic effect
+          duration: 600,  
           easing: 'ease-in-out',
           pseudoElement: '::view-transition-new(root)'
         }
@@ -98,7 +98,7 @@ const Navbar = () => {
       transition: 'background 0.3s ease, border-color 0.3s ease'
     }}>
       
-      {/* LOGO */}
+      
       <h1 style={{ fontSize: '26px', fontWeight: 'bold', margin: 0, color: 'var(--text-main)', letterSpacing: '1px' }}>
         <Link to="/" style={{ color: 'inherit', textDecoration: 'none' }}>
           Shivam<span style={{ color: 'var(--accent)' }}>.</span>
@@ -107,7 +107,7 @@ const Navbar = () => {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '15px' : '40px' }}>
         
-        {/* DESKTOP LINKS */}
+        
         {!isMobile && (
           <div style={{ display: 'flex', gap: '30px' }}>
             {navItems.map(item => (
@@ -130,7 +130,7 @@ const Navbar = () => {
           </div>
         )}
 
-        {/* BUTTON: THEME TOGGLE */}
+         
         <button 
           onClick={toggleTheme} 
           style={{
@@ -163,7 +163,7 @@ const Navbar = () => {
           {isDarkMode ? '☀️' : '🌙'}
         </button>
 
-        {/* MOBILE MENU ICON */}
+         
         {isMobile && (
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -196,7 +196,7 @@ const Navbar = () => {
         )}
       </div>
 
-      {/* MOBILE MENU OVERLAY */}
+      
       <AnimatePresence>
         {isMobile && isMobileMenuOpen && (
           <motion.div

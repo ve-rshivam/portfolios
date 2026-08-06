@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 const RefundRules = ({ fontSize = '15px' }) => {
   const [refundText, setRefundText] = useState(null);
 
-  // Fetch dynamic content from Admin CMS
+   
   useEffect(() => {
     fetch("https://portfolio-px1j.onrender.com/api/content")
       .then(res => res.json())
@@ -21,7 +21,7 @@ const RefundRules = ({ fontSize = '15px' }) => {
     fontWeight: 'bold'
   };
 
-  // If Admin has added custom text, render it with preserved line breaks
+   
   if (refundText) {
     return (
       <div style={{ color: 'var(--text-dim)', fontSize: fontSize, lineHeight: '1.8', whiteSpace: 'pre-wrap' }}>
@@ -30,7 +30,7 @@ const RefundRules = ({ fontSize = '15px' }) => {
     );
   }
 
-  // Professional Fallback Content (if database is empty)
+  
   return (
     <ul style={{ color: 'var(--text-dim)', fontSize: fontSize, lineHeight: '1.8', margin: 0, paddingLeft: '20px' }}>
       <li style={{ marginBottom: '15px' }}>

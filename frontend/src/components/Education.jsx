@@ -5,12 +5,11 @@ const Education = () => {
   const [educations, setEducations] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 🔥 पेज हैंग होने से बचाने के लिए Resize Loop हटा दिया गया है।
-  // अब यह सिर्फ एक बार चेक करेगा कि स्क्रीन मोबाइल है या नहीं।
+  
   const isMobile = window.innerWidth <= 768;
 
   useEffect(() => {
-    let isMounted = true; // Memory leak से बचने के लिए
+    let isMounted = true;  
 
     const fetchEducationData = async () => {
       try {
@@ -18,11 +17,11 @@ const Education = () => {
         const data = await res.json();
 
         if (isMounted) {
-          // डेटाबेस के अलग-अलग नामों (education, educations, etc.) के लिए सुरक्षित चेक
+           
           const eduData = data?.education || data?.educations || data?.academic || [];
           
           if (Array.isArray(eduData) && eduData.length > 0) {
-            // 🔥 Extremely Safe Sorting (अगर कोई ID मिसिंग हो तो भी पेज क्रैश नहीं होगा)
+             
             const sortedData = [...eduData].sort((a, b) => {
               const idA = a?._id?.toString() || "";
               const idB = b?._id?.toString() || "";
@@ -30,7 +29,7 @@ const Education = () => {
             });
             setEducations(sortedData);
           } else {
-            setEducations([]); // डेटा नहीं है तो खाली रखें
+            setEducations([]);  
           }
           setLoading(false);
         }
@@ -45,15 +44,12 @@ const Education = () => {
 
     fetchEducationData();
 
-    // Cleanup function
+    
     return () => {
       isMounted = false;
     };
-  }, []); // 🚨 Empty array ensures यह सिर्फ एक बार चलेगा, कभी हैंग नहीं करेगा!
-
-  // ==========================================
-  // 🎨 STYLES OBJECT (Safe & Responsive)
-  // ==========================================
+  }, []);  
+   
   const styles = {
     container: {
       padding: '20px 5vw', 
@@ -153,14 +149,14 @@ const Education = () => {
           <div style={styles.centerLine} />
           
           {educations.map((edu, index) => {
-            if (!edu) return null; // Safety Check 
+            if (!edu) return null;  
 
             const isLeft = !isMobile && index % 2 === 0;
 
             return (
               <div key={edu._id || index} style={styles.timelineItem(isLeft)}>
                 
-                {/* 🚀 Fixed Glowing Dot */}
+                
                 <motion.div 
                   initial={{ scale: 0, x: "-50%", y: "-50%" }} 
                   whileInView={{ scale: 1, x: "-50%", y: "-50%" }} 
@@ -169,11 +165,11 @@ const Education = () => {
                   style={styles.dot} 
                 />
 
-                {/* 🚀 Premium Card */}
+                 
                 <motion.div 
                   initial={{ opacity: 0, x: isMobile ? 50 : (isLeft ? -50 : 50) }}
                   whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }} // Margin हटा दिया गया है जो क्रैश कर रहा था
+                  viewport={{ once: true }}  
                   transition={{ duration: 0.5, type: 'spring', stiffness: 100 }}
                   whileHover={{ scale: 1.02, borderColor: 'var(--accent)' }}
                   style={styles.card}

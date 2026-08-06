@@ -103,6 +103,7 @@ mongoose.connect(process.env.MONGO_URI, { family: 4 })
   .catch(err => console.log('❌ MongoDB Connection Error:', err));
 
 const adminTransporter = nodemailer.createTransport({
+  service: 'gmail',
   host: 'smtp.gmail.com', 
   port: 465, 
   secure: true,
@@ -113,6 +114,7 @@ const adminTransporter = nodemailer.createTransport({
 });
 
 const clientTransporter = nodemailer.createTransport({
+  service: 'gmail',
   host: 'smtp.gmail.com', 
   port: 465, 
   secure: true,
@@ -123,6 +125,7 @@ const clientTransporter = nodemailer.createTransport({
 });
 
 const teamTransporter = nodemailer.createTransport({
+  service: 'gmail',
   host: 'smtp.gmail.com', 
   port: 465, 
   secure: true,
@@ -248,7 +251,7 @@ const createDefaultAdmin = async () => {
 
     if (!adminExists) {
       const salt = await bcrypt.genSalt(10);
-      // Directly hash the ENV values
+      
       const hashedPassword = await bcrypt.hash(defaultPassword, salt);
       const hashedPin = await bcrypt.hash(defaultPin, salt); 
 
@@ -410,10 +413,7 @@ app.post('/api/admin/reset-password', authLimiter, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: "Server Error" }); }
 });
 
-
-// ==========================================
-// 7. PUBLIC APIs & ROLE-BASED AUTOMATED ALERTS
-// ==========================================
+ 
 app.post('/api/messages', async (req, res) => {
   try {
     const { name, email, phone, message, type, transaction_id, attachment, projectId, isRemainingPayment, amountPaid } = req.body;
@@ -422,7 +422,7 @@ app.post('/api/messages', async (req, res) => {
       return res.status(400).json({success: false, message: "Incomplete payment details provided."});
     }
 
-    // Append remaining payment tag if applicable for admin info
+    
     let finalMessage = message;
     if (isRemainingPayment) {
         finalMessage = `[REMAINING BALANCE PAYMENT] Claimed Amount: $${amountPaid}\n\n${message}`;
@@ -431,7 +431,7 @@ app.post('/api/messages', async (req, res) => {
     const newMessage = new Message({ name, email, phone, message: finalMessage, type, transaction_id, attachment, projectId });
     await newMessage.save();
 
-    // 🔥 DYNAMIC ROLE-BASED EMAIL ALERTS (FIXED PRIVACY & SENDER) 🔥
+    
     if (type === 'payment') {
       try {
         const authorizedAdmins = await AdminUser.find({
@@ -496,10 +496,10 @@ app.post('/api/messages', async (req, res) => {
   }
 });
 
-// 🔥 RAZORPAY ORDER CREATION 🔥
+ 
 app.post('/api/payment/razorpay-order', async (req, res) => {
   try {
-    // Zero-Trust: Backend validates the prices based on DB, frontend amounts are hints
+     
     const { serviceId, amount, totalAmount, projectId, isRemainingPayment } = req.body; 
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
@@ -508,25 +508,25 @@ app.post('/api/payment/razorpay-order', async (req, res) => {
 
     let numericPrice = 100; 
     
-    // SMART PAYMENT & MULTI-PROJECT ZERO-TRUST VALIDATION
+     
     if (isRemainingPayment && projectId) {
-        // If it's a remaining payment, strictly fetch balance from DB
+        
         const project = await ClientProject.findById(projectId);
         if (!project) return res.status(404).json({ success: false, message: "Project not found" });
         
-        numericPrice = project.balanceDue || 100; // Force DB balance
+        numericPrice = project.balanceDue || 100;  
         if (numericPrice <= 0) {
             return res.status(400).json({ success: false, message: "Project is already fully paid." });
         }
     }
     else if (serviceId && mongoose.Types.ObjectId.isValid(serviceId)) {
-        // If it's a new project, check minimum 40% rule
+         
         const service = await Service.findById(serviceId);
         if (service && service.price) {
             const dbPrice = parseInt(service.price.replace(/\D/g, "")) || 100; 
             
             if (amount && amount >= (dbPrice * 0.40)) {
-                numericPrice = parseInt(amount, 10); // Safe partial amount
+                numericPrice = parseInt(amount, 10);  
             } else {
                 numericPrice = dbPrice; 
             }
@@ -1415,4 +1415,7 @@ app.get('/api/linkedin-skills', async (req, res) => {
 
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => { console.log(`🚀 Server running on port ${PORT}`); });
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});

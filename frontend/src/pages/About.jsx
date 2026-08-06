@@ -4,13 +4,13 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Icosahedron, MeshDistortMaterial } from '@react-three/drei';
 import { useNavigate } from 'react-router-dom';
 
-// 👇 यहाँ आपका एजुकेशन इम्पोर्ट है (पाथ सही रखें)
+
 import Education from '../components/Education';
 
 const About = () => {
   const navigate = useNavigate();
 
-  // --- Theme Colors ---
+
   const themeColors = {
     bg: 'var(--bg-main)',
     cardBg: 'var(--bg-card)',
@@ -20,7 +20,7 @@ const About = () => {
     border: 'var(--border-color)',
   };
 
-  // --- Mouse Proximity Glow Logic ---
+ 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
@@ -55,14 +55,14 @@ const About = () => {
         fontFamily: 'Inter, sans-serif'
       }}
     >
-      {/* --- Page Body Glow (Subtle Fixed Gradient) --- */}
+
       <div style={{
         position: 'absolute', top: '0', left: '0', width: '100%', height: '100%',
         background: `radial-gradient(circle at center, rgba(0, 229, 255, 0.05) 0%, ${themeColors.bg} 70%)`,
         zIndex: 0,
       }} />
 
-      {/* --- Mouse Pointer Proximity Glow Element --- */}
+
       <motion.div style={{
         position: 'fixed',
         width: '400px', height: '400px',
@@ -73,10 +73,10 @@ const About = () => {
         zIndex: 1,
       }} />
 
-      {/* --- Content Container (z-index protects from background) --- */}
+
       <div style={{ position: 'relative', zIndex: 5, width: '100%', display: 'flex', flexWrap: 'wrap', gap: '50px' }}>
         
-        {/* ================= LEFT SIDE: Photo & Text ================= */}
+
         <div style={{ flex: 1.5, minWidth: '320px' }}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -84,7 +84,7 @@ const About = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            {/* Section Tag */}
+            
             <div style={{ 
               fontFamily: 'monospace', fontSize: '15px', color: themeColors.accent, 
               letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '15px', fontWeight: 'bold'
@@ -92,16 +92,15 @@ const About = () => {
               About Me
             </div>
             
-            {/* Main Heading */}
+          
             <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 'bold', margin: '0 0 40px 0', color: themeColors.textMain, lineHeight: '1.1' }}>
               Passionate About<br/>
               <span style={{ color: themeColors.accent }}>Problem Solving</span>
             </h2>
             
-            {/* Photo & Text Flex Container */}
+            
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', alignItems: 'flex-start' }}>
-              
-              {/* Profile Photo with 3D Hover */}
+            
               <motion.div 
                 whileHover={{ scale: 1.05, rotateZ: -3, boxShadow: `0px 20px 50px rgba(0, 229, 255, 0.4)`, borderColor: themeColors.accent }}
                 style={{ 
@@ -117,7 +116,6 @@ const About = () => {
                 <img src="/profile.png" alt="Shivam Kumar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </motion.div>
 
-              {/* Bio Paragraphs & Button */}
 <div style={{ flex: 1, minWidth: '250px' }}>
   <p style={{ color: themeColors.textDim, lineHeight: '1.8', fontSize: '16px', margin: '0 0 20px 0' }}>
     <strong style={{ color: themeColors.textMain, display: 'block', marginBottom: '4px' }}>The Intersection of Creativity and Code</strong>
@@ -140,7 +138,7 @@ const About = () => {
   </p>
 
 
-                {/* --- Added Contact Button --- */}
+                
                 <motion.button 
                   whileHover={{ scale: 1.05, boxShadow: `0px 10px 20px rgba(0, 229, 255, 0.3)`, backgroundColor: 'rgba(0, 229, 255, 0.1)' }}
                   whileTap={{ scale: 0.95 }}
@@ -175,7 +173,7 @@ const About = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
             
-            // --- 3D Hover Effect matching other pages ---
+            
             whileHover={{ 
               y: -10, 
               scale: 1.02, 
@@ -195,7 +193,7 @@ const About = () => {
               transition: 'border-color 0.3s ease, box-shadow 0.3s ease'
             }}
           >
-            {/* Terminal Header */}
+           
             <div style={{ padding: '12px 20px', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: `1px solid ${themeColors.border}` }}>
               <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ff5f57' }}></div>
               <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ffbd2e' }}></div>
@@ -203,7 +201,7 @@ const About = () => {
               <span style={{ fontFamily: 'monospace', fontSize: '13px', color: themeColors.textDim, marginLeft: '10px' }}>guest@shivam:~</span>
             </div>
             
-            {/* Terminal Body */}
+            
             <div style={{ padding: '25px', fontFamily: 'monospace', fontSize: '15px', lineHeight: '2' }}>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <span style={{ color: themeColors.accent }}>➜</span>
@@ -232,7 +230,7 @@ const About = () => {
             </div>
           </motion.div>
 
-          {/* 3D Visual Canvas */}
+          
           <div style={{ height: '350px', width: '100%', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${themeColors.border}`, background: 'rgba(0,0,0,0.2)' }}>
             <Canvas>
               <ambientLight intensity={0.5} />

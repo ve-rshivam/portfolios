@@ -6,7 +6,7 @@ const Footer = () => {
     <footer style={{ 
       textAlign: 'center', 
       padding: '50px 5vw 30px 5vw', 
-      background: 'var(--bg-main)', // Light/Dark theme support
+      background: 'var(--bg-main)',  
       borderTop: '1px solid var(--border-color)',
       fontFamily: 'Inter, sans-serif',
       transition: 'background 0.3s ease, color 0.3s ease, border-color 0.3s ease',
@@ -14,7 +14,7 @@ const Footer = () => {
       zIndex: 10
     }}>
       
-      {/* ── 1. Footer Links ── */}
+       
       <div style={{ 
         display: 'flex', 
         justifyContent: 'center', 
@@ -25,7 +25,7 @@ const Footer = () => {
         fontSize: '14px',
         fontWeight: '500'
       }}>
-        {/* Updated Links to match your new separate pages */}
+         
         <motion.a href="/privacy" whileHover={{ color: 'var(--accent)' }} style={linkStyle}>
           Privacy Policy
         </motion.a>
@@ -46,13 +46,13 @@ const Footer = () => {
         </motion.a>
         <span style={separatorStyle}>|</span>
 
-        {/* Highlighted Payment Link */}
+        
         <motion.a href="/payment" whileHover={{ color: 'var(--accent)', scale: 1.05 }} style={{ ...linkStyle, color: 'var(--accent)', fontWeight: 'bold' }}>
           Payment
         </motion.a>
       </div>
 
-      {/* ── 2. Copyright & LinkedIn Link ── */}
+       
       <div style={{ 
         display: 'flex', 
         justifyContent: 'center', 
@@ -64,7 +64,7 @@ const Footer = () => {
       }}>
         <span style={{ fontWeight: '600', opacity: 0.7 }}>© {new Date().getFullYear()}</span>
         
-        {/* Aapka LinkedIn Profile Link */}
+         
         <motion.a 
           href="https://linkedin.com/in/ve-rshivam" 
           target="_blank" 
@@ -89,7 +89,7 @@ const Footer = () => {
   );
 };
 
-// Common Styles for links and separators
+ 
 const linkStyle = {
   color: 'var(--text-dim)', 
   textDecoration: 'none',

@@ -183,16 +183,16 @@
   }
 }
 :root {
-  --bg-main: #0a0b10;        /* Very dark navy/black background */
-  --bg-card: #13151f;        /* Slightly lighter dark background for cards */
-  --accent: #00e5ff;         /* The Neon Cyan color from your image */
+  --bg-main: #0a0b10;         
+  --bg-card: #13151f;        
+  --accent: #00e5ff;        
   --accent-glow: rgba(0, 229, 255, 0.4); 
-  --text-main: #ffffff;      /* White text */
-  --text-dim: #9ca3af;       /* Light grey for descriptions */
-  --border-color: #2a2d3e;   /* Subtle border for cards */
+  --text-main: #ffffff;       
+  --text-dim: #9ca3af;       
+  --border-color: #2a2d3e;   
 }
 
-/* Optional: Smooth scrolling */
+ 
 html {
   scroll-behavior: smooth;
 }

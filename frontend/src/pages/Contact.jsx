@@ -7,7 +7,7 @@ const Contact = () => {
   const [result, setResult] = useState("");
   const [contactLinks, setContactLinks] = useState([]);
 
-  // Fetch CMS Content
+  
   useEffect(() => {
     fetch("https://portfolio-px1j.onrender.com/api/content")
       .then(res => res.json())
@@ -19,7 +19,7 @@ const Contact = () => {
       .catch(err => console.log("Content fetch error", err));
   }, []);
 
-  // --- Mouse Proximity Glow Logic ---
+  
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
@@ -37,35 +37,32 @@ const Contact = () => {
   const cursorGlowX = useTransform(mouseX, (x) => `${x - 200}px`);
   const cursorGlowY = useTransform(mouseY, (y) => `${y - 200}px`);
 
-  // ==========================================
-  // 🔥 DOUBLE SUBMIT LOGIC (Email + Admin Inbox) 🔥
-  // ==========================================
   const onSubmit = async (event) => {
     event.preventDefault();
     setResult("Sending message...");
 
     const formData = new FormData(event.target);
 
-    // Database me save karne ke liye data object
+    
     const data = {
       name: formData.get('name'),
       email: formData.get('email'),
       phone: formData.get('phone'),
       message: formData.get('message'),
-      type: 'contact' // Backend me pehchanne ke liye ki ye contact form hai
+      type: 'contact'
     };
 
     try {
-      // 1. Email Send Karna (Web3Forms API)
+      
       const web3FormData = new FormData(event.target);
-      web3FormData.append("access_key", "YOUR_WEB3FORMS_ACCESS_KEY_HERE"); // 👈 YAHAN APNI KEY DALEIN
+      web3FormData.append("access_key", "WEB3FORMS_ACCESS_KEY"); 
 
       await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         body: web3FormData
       });
 
-      // 2. Database Me Save Karna (Admin Dashboard Inbox ke liye)
+      
       const response = await fetch("https://portfolio-px1j.onrender.com/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -76,7 +73,7 @@ const Contact = () => {
 
       if (resultData.success) {
         setResult("✅ Message Sent! ");
-        event.target.reset(); // Form clear karna
+        event.target.reset(); 
       } else {
         setResult("❌ Error: The message was sent but was not saved in the Inbox.");
       }
@@ -85,7 +82,7 @@ const Contact = () => {
     }
   };
 
-  // Social Media Links Data (Colors fixed as they are brand colors)
+ 
   const socials = [
     { name: "LinkedIn", url: "https://linkedin.com/in/ve-rshivam", color: "#0077b5" },
     { name: "GitHub", url: "https://github.com/ve-rshivam", color: "#2aa10f" },
@@ -122,7 +119,7 @@ const Contact = () => {
       transition: 'background 0.3s ease, color 0.3s ease'
     }}>
 
-      {/* --- Page Body Glow (Subtle Fixed Gradient) --- */}
+     
       <div style={{
         position: 'absolute', top: '0', left: '0', width: '100%', height: '100%',
         background: `radial-gradient(circle at center, var(--accent-glow) 0%, transparent 70%)`,
@@ -130,7 +127,7 @@ const Contact = () => {
         pointerEvents: 'none'
       }} />
 
-      {/* --- Mouse Pointer Proximity Glow Element --- */}
+     
       <motion.div style={{
         position: 'fixed',
         width: '400px', height: '400px',
@@ -141,10 +138,10 @@ const Contact = () => {
         zIndex: 1,
       }} />
 
-      {/* --- Content Wrapper --- */}
+    
       <div style={{ position: 'relative', zIndex: 5, width: '100%', display: 'flex', flexWrap: 'wrap', gap: '50px', alignItems: 'center' }}>
 
-        {/* ================= LEFT SIDE: Form & Socials ================= */}
+       
         <div style={{ flex: 1.2, minWidth: '320px', perspective: '2000px' }}>
           <motion.h1
             initial={{ opacity: 0, x: -50 }}
@@ -157,7 +154,7 @@ const Contact = () => {
             My backend is ready! Please fill out the form or connect on social media.
           </p>
 
-          {/* 3D ANIMATED FORM */}
+          
           <motion.form
             onSubmit={onSubmit}
             initial={{ opacity: 0, y: 30 }}
@@ -166,8 +163,8 @@ const Contact = () => {
             whileHover={{
               y: -10,
               scale: 1.02,
-              rotateX: 2,   // Slight 3D tilt
-              rotateY: -2,  // Slight 3D tilt
+              rotateX: 2,   
+              rotateY: -2,  
               boxShadow: "0px 20px 50px var(--accent-glow)",
               borderColor: "var(--accent)"
             }}
@@ -199,7 +196,7 @@ const Contact = () => {
             <span style={{ color: 'var(--text-main)', fontSize: '14px', textAlign: 'center', marginTop: '10px', fontWeight: '500' }}>{result}</span>
           </motion.form>
 
-          {/* --- SOCIAL MEDIA LINKS SECTION --- */}
+          
           <div style={{ marginTop: '40px', display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
             {socials.map((social, index) => (
               <motion.a
@@ -267,7 +264,7 @@ const Contact = () => {
           </div>
         </div>
 
-        {/* ================= RIGHT SIDE: 3D Object ================= */}
+        
         <div style={{ flex: 1, height: '500px', minWidth: '320px' }}>
           <Canvas>
             <ambientLight intensity={1} />
@@ -281,7 +278,7 @@ const Contact = () => {
 
       </div>
 
-      {/* --- Floating Button (Consistent with other pages) --- */}
+     
       <motion.div style={{
         position: 'fixed', bottom: '40px', right: '40px',
         width: '50px', height: '50px',

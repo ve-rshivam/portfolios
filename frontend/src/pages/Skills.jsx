@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 
-// --- Manual Skills Data ---
+ 
 const localSkillsData = [
   {
     name: 'C++',
@@ -57,7 +57,7 @@ const Skills = () => {
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // --- Common Theme Colors ---
+   
   const themeColors = {
     bg: 'var(--bg-main)',
     cardBg: 'var(--bg-card)',
@@ -68,7 +68,7 @@ const Skills = () => {
     buttonBorder: 'var(--button-border)',
   };
 
-  // --- Mouse Proximity Glow Logic ---
+   
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
@@ -83,30 +83,29 @@ const Skills = () => {
     };
   }, [mouseX, mouseY]);
 
-  // Transform mouse values into a fixed position for the glow circle (adjusting size)
+  
   const cursorGlowX = useTransform(mouseX, (x) => `${x - 200}px`);
   const cursorGlowY = useTransform(mouseY, (y) => `${y - 200}px`);
 
   useEffect(() => {
-    // 🔥 DONO APIs KO EK SATH CALL KARNE KA LOGIC (Resume Data + LinkedIn Data) 🔥
+    
     const fetchData = async () => {
       try {
-        // 1. Fetch Existing Backend Skills (Admin CMS wala)
+         
         const resumeRes = await fetch("https://portfolio-px1j.onrender.com/api/resume-data").catch(() => null);
         const resumeData = resumeRes ? await resumeRes.json() : { skills: [] };
         const serverSkills = resumeData.skills && resumeData.skills.length > 0 ? resumeData.skills : [];
 
-        // 2. Fetch LinkedIn Skills via Backend 
-        // (NOTE: Direct frontend scraping block hoti hai, isliye backend se mangwa rahe hain)
+        
         const linkedinRes = await fetch("https://portfolio-px1j.onrender.com/api/linkedin-skills").catch(() => null);
         const linkedinData = linkedinRes ? await linkedinRes.json() : [];
         const linkedinSkills = Array.isArray(linkedinData) ? linkedinData : [];
 
-        // 3. Sabhi skills ko combine karna (Local + Admin CMS + LinkedIn)
+        
         const combinedSkills = [...localSkillsData, ...serverSkills, ...linkedinSkills];
         const uniqueSkillsMap = new Map();
         
-        // 🔥 Dynamic Admin Update Logic: Naya data purane ko overwrite karega
+         
         combinedSkills.forEach((skill) => {
           if (skill && skill.name) {
             const key = skill.name.toLowerCase();
@@ -115,8 +114,7 @@ const Skills = () => {
             uniqueSkillsMap.set(key, {
               ...existingSkill,
               ...skill,
-              // Agar admin panel se icon/description/proficiency nahi aata, toh purana bacha rahega.
-              // Agar admin panel se naya aata hai, toh wo overwrite kar dega!
+              
               icon: skill.icon || existingSkill.icon,
               description: skill.description || existingSkill.description,
               proficiency: skill.proficiency || existingSkill.proficiency || 50,
@@ -139,14 +137,14 @@ const Skills = () => {
   return (
     <div style={{ padding: '0', minHeight: '100vh', background: themeColors.bg, color: themeColors.textMain, position: 'relative', overflow: 'hidden', fontFamily: 'Inter, sans-serif' }}>
       
-      {/* --- Main Page Body Glow (Subtle Fixed Gradient) --- */}
+       
       <div style={{
         position: 'absolute', top: '0', left: '0', width: '100%', height: '100%',
         background: `radial-gradient(circle at center, rgba(0, 229, 255, 0.05) 0%, ${themeColors.bg} 70%)`,
         zIndex: 0,
       }} />
 
-      {/* --- Mouse Pointer Proximity Glow Element --- */}
+       
       <motion.div style={{
         position: 'fixed',
         width: '400px', height: '400px',
@@ -157,10 +155,10 @@ const Skills = () => {
         zIndex: 1,
       }} />
 
-      {/* --- Main Content Section --- */}
+    
       <section style={{ padding: '120px 8vw 80px 8vw', zIndex: 5, position: 'relative' }}>
         
-        {/* Header Section */}
+         
         <motion.div 
           initial={{ opacity: 0, y: -20 }} 
           animate={{ opacity: 1, y: 0 }} 
@@ -174,7 +172,7 @@ const Skills = () => {
           </p>
         </motion.div>
 
-        {/* Skills Grid */}
+         
         {loading ? (
           <p style={{ textAlign: 'center', color: themeColors.textDim }}>Loading skills...</p>
         ) : (
@@ -185,7 +183,7 @@ const Skills = () => {
             justifyContent: 'center',
             maxWidth: '1200px',
             margin: '0 auto',
-            perspective: '2000px', // CRUCIAL for 3D card tilt
+            perspective: '2000px',  
           }}>
             {skills.map((skill, index) => (
               <motion.div
@@ -195,12 +193,12 @@ const Skills = () => {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.05, duration: 0.4 }}
                 
-                // --- Specific 3D Tilt, Scale, and Big Background Glow Shadow on Hover ---
+                 
                 whileHover={{ 
                   y: -10, 
                   scale: 1.03, 
-                  rotateX: 10,  // Tilt forward slightly
-                  rotateY: -10, // Tilt left slightly
+                  rotateX: 10,   
+                  rotateY: -10,  
                   borderColor: themeColors.accent,
                   boxShadow: `0px 20px 60px rgba(0, 229, 255, 0.4)`
                 }}
@@ -220,12 +218,12 @@ const Skills = () => {
                   minHeight: '280px' 
                 }}
               >
-                {/* Icon */}
+                
                 <div style={{ fontSize: '32px', marginBottom: '20px' }}>
                   {skill.icon || '💻'} 
                 </div>
                 
-                {/* Skill Name */}
+                 
                 <h3 style={{ 
                   color: themeColors.textMain, 
                   fontSize: '20px', 
@@ -236,7 +234,7 @@ const Skills = () => {
                   {skill.name}
                 </h3>
 
-                {/* Description */}
+                 
                 <p style={{ 
                   color: themeColors.textDim, 
                   fontSize: '15px', 
@@ -247,7 +245,7 @@ const Skills = () => {
                   {skill.description || skill.category || 'Continuously expanding my knowledge and practical experience in this technology.'}
                 </p>
 
-                {/* Progress Bar Container */}
+                
                 <div style={{ 
                   width: '100%', 
                   height: '4px', 
@@ -256,7 +254,7 @@ const Skills = () => {
                   marginTop: 'auto', 
                   overflow: 'hidden'
                 }}>
-                  {/* Progress Fill */}
+                   
                   <motion.div 
                     initial={{ width: 0 }}
                     whileInView={{ width: `${skill.proficiency || 50}%` }}
@@ -276,7 +274,7 @@ const Skills = () => {
         )}
       </section>
 
-      {/* --- Floating Button --- */}
+       
       <motion.div style={{
         position: 'fixed', bottom: '40px', right: '40px',
         width: '50px', height: '50px',

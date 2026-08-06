@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
-import { useNavigate } from 'react-router-dom'; // 🆕 Navigation ke liye
-
+import { useNavigate } from 'react-router-dom'; 
 const Services = () => {
-  // --- State for Backend Connection ---
+  
   const [servicesData, setServicesData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate(); // 🆕 Navigation Hook
+  const navigate = useNavigate();  
 
-  // --- Mouse Proximity Glow Logic ---
+  
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
@@ -26,7 +25,7 @@ const Services = () => {
   const cursorGlowX = useTransform(mouseX, (x) => `${x - 200}px`);
   const cursorGlowY = useTransform(mouseY, (y) => `${y - 200}px`);
 
-  // --- Freelance Services Data (Fallback / Default) ---
+   
   const fallbackServices = [
     {
       id: 1,
@@ -72,7 +71,7 @@ const Services = () => {
     }
   ];
 
-  // --- Backend API Fetch Logic ---
+  
   useEffect(() => {
     const fetchServices = async () => {
       try {
@@ -81,7 +80,7 @@ const Services = () => {
         
         const serverServices = Array.isArray(data) ? data : [];
         
-        // 🔥 MAGIC MERGE LOGIC (Admin Priority) 🔥
+         
         const combinedServices = [...fallbackServices, ...serverServices];
         const uniqueServicesMap = new Map();
         
@@ -93,7 +92,7 @@ const Services = () => {
             uniqueServicesMap.set(key, {
               ...existingService,
               ...service,
-              // Admin dashboard data gets 1st priority, local data is backup
+              
               description: service.description || existingService.description,
               icon: service.icon || existingService.icon,
               price: service.price || existingService.price,
@@ -101,12 +100,12 @@ const Services = () => {
           }
         });
 
-        // Map se wapas array banakar state mein set kar diya
+        
         setServicesData(Array.from(uniqueServicesMap.values()));
 
       } catch (err) {
         console.error("Backend fetch error:", err);
-        // Agar backend offline hai toh bhi default services dikhao (Website break nahi hogi)
+       
         setServicesData(fallbackServices);
       } finally {
         setLoading(false);
@@ -116,9 +115,9 @@ const Services = () => {
     fetchServices();
   }, []);
 
-  // 🆕 Navigation Handler
+   
   const handleServiceClick = (serviceTitle) => {
-    // Navigate to payment page with the selected service via state
+     
     navigate('/payment', { state: { preSelectedService: serviceTitle } });
   };
 
@@ -134,7 +133,7 @@ const Services = () => {
       transition: 'background 0.3s ease, color 0.3s ease'
     }}>
       
-      {/* --- Page Body Glow (Subtle Fixed Gradient) --- */}
+       
       <div style={{
         position: 'absolute', top: '0', left: '0', width: '100%', height: '100%',
         background: `radial-gradient(circle at center, var(--accent-glow) 0%, transparent 70%)`,
@@ -142,7 +141,7 @@ const Services = () => {
         pointerEvents: 'none'
       }} />
 
-      {/* --- Mouse Pointer Proximity Glow Element --- */}
+      
       <motion.div style={{
         position: 'fixed',
         width: '400px', height: '400px',
@@ -153,10 +152,10 @@ const Services = () => {
         zIndex: 1,
       }} />
 
-      {/* --- Content Container --- */}
+       
       <div style={{ position: 'relative', zIndex: 5, maxWidth: '1200px', margin: '0 auto' }}>
         
-        {/* Header Section */}
+        
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -171,7 +170,7 @@ const Services = () => {
           </p>
         </motion.div>
 
-        {/* Services Grid (3D Hover Effect) */}
+         
         {loading ? (
           <p style={{ textAlign: 'center', color: 'var(--text-dim)' }}>Loading services...</p>
         ) : (
@@ -185,7 +184,7 @@ const Services = () => {
             {servicesData.map((service, index) => (
               <motion.div 
                 key={service._id || service.id} 
-                onClick={() => handleServiceClick(service.title)} // 🆕 Click Event added
+                onClick={() => handleServiceClick(service.title)}  
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -234,14 +233,14 @@ const Services = () => {
                   {service.description}
                 </p>
 
-                {/* 🆕 Visual cue for the user */}
+                 
                 <span style={{ fontSize: '13px', color: 'var(--accent)', fontWeight: 'bold' }}>Select this service ➔</span>
               </motion.div>
             ))}
           </div>
         )}
 
-        {/* --- Payment Terms & Process Section --- */}
+        
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -292,7 +291,7 @@ const Services = () => {
             </div>
 
             <motion.button 
-              onClick={() => navigate('/contact')} // 🆕 Routing logic instead of anchor tag
+              onClick={() => navigate('/contact')} 
               whileHover={{ scale: 1.05, boxShadow: "0px 10px 20px var(--accent-glow)" }}
               whileTap={{ scale: 0.95 }}
               style={{

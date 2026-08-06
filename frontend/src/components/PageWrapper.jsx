@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 const PageWrapper = ({ children }) => {
   return (
     <motion.div
-      // Naya page halka sa niche se fade-in hoke aayega (Smooth & Fast)
+       
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}

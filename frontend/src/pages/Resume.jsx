@@ -56,12 +56,12 @@ const Resume = () => {
         setLoading(false);
       });
 
-    // 3. Fetch CMS content for name
+     
     fetch("https://portfolio-px1j.onrender.com/api/content")
       .then(res => res.json())
       .then(data => {
         if (data?.homeData?.heroTitle) {
-          // Extract name from "Hi, I am Shivam Singh" -> "Shivam Singh"
+           
           const title = data.homeData.heroTitle;
           const nameMatch = title.match(/I\s*(?:am|'m)\s+(.+)/i);
           setHomeContent({ heroTitle: nameMatch ? nameMatch[1].trim() : title });
@@ -73,10 +73,7 @@ const Resume = () => {
   const handleDownloadPDF = () => {
     window.print();
   };
-
-  // ============================================================
-  // 🎨 GROUP SKILLS BY CATEGORY (for LaTeX-style "Technical Skills")
-  // ============================================================
+ 
   const groupSkillsByCategory = (skillsList) => {
     const groups = {};
     skillsList.forEach(skill => {
@@ -88,12 +85,9 @@ const Resume = () => {
   };
 
   const skillGroups = groupSkillsByCategory(skills);
-
-  // ============================================================
-  // 📐 COMMON STYLES (LaTeX Academic Resume Style)
-  // ============================================================
+ 
   const s = {
-    // Section title with bottom border (like LaTeX \section)
+     
     sectionTitle: {
       fontSize: '11.5pt',
       fontWeight: 'bold',
@@ -106,7 +100,7 @@ const Resume = () => {
       marginTop: '14px',
       fontFamily: "'Times New Roman', 'Georgia', serif",
     },
-    // Entry row: title left, date right
+     
     entryRow: {
       display: 'flex',
       justifyContent: 'space-between',
@@ -180,7 +174,7 @@ const Resume = () => {
       transition: 'background 0.3s ease'
     }}>
 
-      {/* 🔥 PRODUCTION-GRADE PRINT CSS 🔥 */}
+      
       <style>{`
         @media print {
           @page {
@@ -280,7 +274,7 @@ const Resume = () => {
         }
       `}</style>
 
-      {/* --- Page Body Glow (Web Only) --- */}
+      
       <div className="no-print" style={{
         position: 'absolute', top: '0', left: '0', width: '100%', height: '100%',
         background: `radial-gradient(circle at center, var(--accent-glow) 0%, transparent 70%)`,
@@ -297,10 +291,7 @@ const Resume = () => {
         left: cursorGlowX, top: cursorGlowY,
         zIndex: 1,
       }} />
-
-      {/* ========================================================= */}
-      {/* 📄 RESUME A4 CONTAINER                                    */}
-      {/* ========================================================= */}
+ 
       <motion.div
         id="printable-resume"
         initial={{ opacity: 0, y: 40 }}
@@ -321,7 +312,7 @@ const Resume = () => {
         }}
       >
 
-        {/* Print Action Button (Web Only) */}
+        
         <div className="no-print" style={{ textAlign: 'right', marginBottom: '15px' }}>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -342,10 +333,7 @@ const Resume = () => {
             🖨️ Download PDF
           </motion.button>
         </div>
-
-        {/* ============================== */}
-        {/* 1. HEADER — Name + Contact     */}
-        {/* ============================== */}
+ 
         <div style={{ textAlign: 'center', marginBottom: '5px' }}>
           <h1 style={{
             fontSize: '22pt',
@@ -377,9 +365,7 @@ const Resume = () => {
           </p>
         </div>
 
-        {/* ============================== */}
-        {/* 2. EDUCATION                   */}
-        {/* ============================== */}
+        
         {education.length > 0 && (
           <div>
             <div className="resume-section-title" style={s.sectionTitle}>Education</div>
@@ -405,14 +391,12 @@ const Resume = () => {
           </div>
         )}
 
-        {/* ============================== */}
-        {/* 3. EXPERIENCE                  */}
-        {/* ============================== */}
+         
         {experiences.length > 0 && (
           <div>
             <div className="resume-section-title" style={s.sectionTitle}>Experience</div>
             {experiences.map((exp) => {
-              // Split description by newline or bullet character for multi-point display
+              
               const descLines = exp.description
                 ? exp.description.split(/\n|•|●/).map(l => l.trim()).filter(Boolean)
                 : [];
@@ -435,14 +419,12 @@ const Resume = () => {
           </div>
         )}
 
-        {/* ============================== */}
-        {/* 4. PROJECTS (Pinned/Home only) */}
-        {/* ============================== */}
+        
         {pinnedProjects.length > 0 && (
           <div>
             <div className="resume-section-title" style={s.sectionTitle}>Projects</div>
             {pinnedProjects.map((repo) => {
-              // Split description into bullet points
+              
               const descLines = repo.description
                 ? repo.description.split(/\n|•|●/).map(l => l.trim()).filter(Boolean)
                 : ['Developed and deployed a modern web application.'];
@@ -470,22 +452,20 @@ const Resume = () => {
           </div>
         )}
 
-        {/* ============================== */}
-        {/* 5. TECHNICAL SKILLS            */}
-        {/* ============================== */}
+         
         {skills.length > 0 && (
           <div>
             <div className="resume-section-title" style={s.sectionTitle}>Technical Skills</div>
             <div style={{ marginTop: '4px' }}>
               {Object.keys(skillGroups).length > 1 ? (
-                // If skills have categories, show grouped format
+                 
                 Object.entries(skillGroups).map(([category, skillNames]) => (
                   <div key={category} style={s.skillLine}>
                     <strong>{category}</strong>: {skillNames.join(', ')}
                   </div>
                 ))
               ) : (
-                // Single-category fallback: just list all skills in a comma-separated line
+                 
                 <div style={s.skillLine}>
                   <strong>Skills</strong>: {skills.map(sk => sk.name).join(', ')}
                 </div>
@@ -494,9 +474,7 @@ const Resume = () => {
           </div>
         )}
 
-        {/* ============================== */}
-        {/* LOADING STATE                  */}
-        {/* ============================== */}
+        
         {loading && (
           <div style={{
             textAlign: 'center',
@@ -509,7 +487,7 @@ const Resume = () => {
           </div>
         )}
 
-        {/* Empty state when everything loaded but nothing exists */}
+        
         {!loading && education.length === 0 && experiences.length === 0 &&
           pinnedProjects.length === 0 && skills.length === 0 && (
             <div style={{

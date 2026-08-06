@@ -1,4 +1,4 @@
-// data.js
+ 
 export const localSkillsData = [
   { name: 'C++', icon: '⚡', description: 'Core language for competitive programming. STL, pointers, OOP, memory management.', proficiency: 80 },
   { name: 'Python', icon: '🐍', description: 'Scripting, automation, quick prototyping. NumPy, file I/O, algorithms.', proficiency: 75 },
