@@ -27,6 +27,9 @@ if (missingVars.length > 0) {
 
 const app = express();
 app.set('trust proxy', 1);
+app.get('/', (req, res) => {
+    res.status(200).send("Portfolio Backend is Awake and Running!");
+});
 
 app.use(helmet()); 
 app.use(mongoSanitize());
