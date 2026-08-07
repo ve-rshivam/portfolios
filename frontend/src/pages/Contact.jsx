@@ -151,7 +151,7 @@ const Contact = () => {
             Let's <span style={{ color: 'var(--accent)' }}>Connect</span>
           </motion.h1>
           <p style={{ color: 'var(--text-dim)', marginBottom: '40px', fontSize: '16px', lineHeight: '1.6' }}>
-            My backend is ready! Please fill out the form or connect on social media.
+            Please fill out the form or connect on social media.
           </p>
 
           
