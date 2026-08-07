@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 
-// ============================================================
-// 🎓 LATEX-STYLE ACADEMIC RESUME — Matching Reference Image
-// ============================================================
-
 const Resume = () => {
   const [pinnedProjects, setPinnedProjects] = useState([]);
   const [skills, setSkills] = useState([]);
@@ -15,7 +11,7 @@ const Resume = () => {
 
   const githubUser = "ve-rshivam";
 
-  // --- Mouse Proximity Glow Logic (Web only) ---
+
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
@@ -330,7 +326,7 @@ const Resume = () => {
               fontFamily: 'Inter, Arial, sans-serif',
             }}
           >
-            🖨️ Download PDF
+            Download PDF
           </motion.button>
         </div>
  

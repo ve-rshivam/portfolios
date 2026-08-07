@@ -160,14 +160,14 @@ const Home = () => {
                 whileTap={{ scale: 0.95 }} onClick={() => navigate('/contact')}
                 style={{ padding: '15px 35px', background: themeColors.accent, color: 'var(--bg-main)', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', transition: 'all 0.3s' }}
               >
-                Hire Me 🚀
+                Hire Me 
               </motion.button>
               <motion.button 
                 whileHover={{ scale: 1.05, backgroundColor: 'var(--accent-glow)', borderColor: themeColors.accent }} 
                 whileTap={{ scale: 0.95 }} onClick={handleResumeClick}
                 style={{ padding: '15px 35px', background: 'transparent', color: themeColors.textMain, border: `2px solid ${themeColors.border}`, borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', transition: 'all 0.3s' }}
               >
-                View Resume 📄
+                View Resume 
               </motion.button>
             </div>
           </motion.div>
@@ -260,7 +260,7 @@ const Home = () => {
             whileHover={{ scale: 1.05, color: themeColors.accent }} onClick={() => navigate('/skills')} 
             style={{ marginTop: '50px', padding: '10px 20px', background: 'transparent', color: themeColors.textDim, border: 'none', cursor: 'pointer', fontSize: '16px', textDecoration: 'underline', transition: '0.3s' }}
           >
-            View All Skills ↗
+            View All Skills
           </motion.button>
         </section>
 
@@ -300,7 +300,7 @@ const Home = () => {
                     padding: '10px 15px', border: `1px solid ${themeColors.buttonBorder}`, borderRadius: '8px',
                     color: themeColors.accent, fontWeight: 'bold', fontSize: '14px', textDecoration: 'none', marginTop: 'auto'
                   }}>
-                    Source Code ↗
+                    Source Code
                   </a>
                 </motion.div>
               ))
@@ -341,7 +341,7 @@ const Home = () => {
               whileHover={{ scale: 1.05, boxShadow: `0px 10px 20px var(--accent-glow)` }} onClick={() => navigate('/reviews')} 
               style={{ padding: '12px 30px', background: 'transparent', color: themeColors.accent, border: `2px solid ${themeColors.accent}`, borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px', transition: '0.3s' }}
             >
-              Read More or Leave a Review ✍️
+              Read More or Leave a Review
             </motion.button>
           </section>
         )}

@@ -156,7 +156,7 @@ const About = () => {
                     transition: 'all 0.3s'
                   }}
                 >
-                  Get In Touch 🚀
+                  Get In Touch
                 </motion.button>
               </div>
             </div>
@@ -216,7 +216,7 @@ const About = () => {
                 <span style={{ color: 'white' }}>cat current_focus.txt</span>
               </div>
               <div style={{ color: '#00b8ff', paddingLeft: '20px', marginBottom: '15px' }}>
-                Mastering C++ & Python for DSA
+                Mastering JAVA & Python for DSA
               </div>
 
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>

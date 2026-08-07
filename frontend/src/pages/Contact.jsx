@@ -72,13 +72,13 @@ const Contact = () => {
       const resultData = await response.json();
 
       if (resultData.success) {
-        setResult("✅ Message Sent! ");
+        setResult("Message Sent! ");
         event.target.reset(); 
       } else {
-        setResult("❌ Error: The message was sent but was not saved in the Inbox.");
+        setResult("Error: The message was sent but was not saved in the Inbox.");
       }
     } catch (error) {
-      setResult("❌ Error: The backend server is offline or there is a network issue. Please try again later.");
+      setResult("Error: The backend server is offline or there is a network issue. Please try again later.");
     }
   };
 
@@ -191,7 +191,7 @@ const Contact = () => {
                 cursor: 'pointer', transition: 'all 0.3s ease', marginTop: '10px'
               }}
             >
-              Send Message 🚀
+              Send Message
             </motion.button>
             <span style={{ color: 'var(--text-main)', fontSize: '14px', textAlign: 'center', marginTop: '10px', fontWeight: '500' }}>{result}</span>
           </motion.form>

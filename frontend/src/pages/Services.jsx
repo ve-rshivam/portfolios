@@ -306,7 +306,7 @@ const Services = () => {
                 transition: 'all 0.3s ease'
               }}
             >
-              Discuss a Project 📩
+              Discuss a Project
             </motion.button>
           </div>
 

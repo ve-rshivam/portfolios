@@ -27,12 +27,12 @@ const Projects = () => {
   const cursorGlowY = useTransform(mouseY, (y) => `${y - 200}px`);
 
   useEffect(() => {
-    // 🔥 FIX: 'per_page=100' added to fetch all repositories 🔥
+  
     fetch(`https://api.github.com/users/${githubUsername}/repos?sort=updated&per_page=100`)
       .then(response => response.json())
       .then(data => {
         if (Array.isArray(data)) {
-          // Remove slice so ALL projects are shown here
+
           setRepos(data);
         }
         setLoading(false);
@@ -55,7 +55,7 @@ const Projects = () => {
       transition: 'background 0.3s ease, color 0.3s ease'
     }}>
       
-      {/* --- Page Body Glow (Subtle Fixed Gradient) --- */}
+
       <div style={{
         position: 'absolute', top: '0', left: '0', width: '100%', height: '100%',
         background: `radial-gradient(circle at center, var(--accent-glow) 0%, transparent 70%)`,
@@ -63,7 +63,7 @@ const Projects = () => {
         pointerEvents: 'none'
       }} />
 
-      {/* --- Mouse Pointer Proximity Glow Element --- */}
+
       <motion.div style={{
         position: 'fixed',
         width: '400px', height: '400px',

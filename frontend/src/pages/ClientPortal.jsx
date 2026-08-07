@@ -137,10 +137,10 @@ const ClientPortal = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setForgotMsg("✅ The new password has been sent successfully. Please check your inbox.");
+        setForgotMsg("The new password has been sent successfully. Please check your inbox.");
         setForgotEmail('');
       } else {
-        setForgotError(data.message || "Email not found.");
+        setForgotError(data.message || "The new password has been sent successfully. Please check your inbox.");
       }
     } catch (err) {
       setForgotError("Server connection error. Please try again later.");
@@ -163,10 +163,10 @@ const ClientPortal = () => {
       });
       const data = await res.json();
       if (data.success) {
-        alert("✅ Your message has been sent to the developer!");
+        alert("Your message has been sent to the developer!");
         setClientReply('');
       } else {
-        alert("❌ Failed to send message. Please try again.");
+        alert("Failed to send message. Please try again.");
       }
     } catch(err) {
       alert("Server error while sending message.");
@@ -242,7 +242,7 @@ const ClientPortal = () => {
                     onClick={() => setShowWelcomePopup(false)}
                     style={{ padding: '14px 30px', background: 'var(--accent)', color: 'var(--bg-main)', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px', width: '100%' }}
                   >
-                    View Dashboard 🚀
+                    View Dashboard
                   </button>
                 </>
               )}
